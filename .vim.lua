@@ -26,5 +26,6 @@ vim.keymap.set('n', '<C-c>', function()
     runInConsole('cargo clippy -- ' ..
                  '-Wclippy::all ' ..
                  '-Wclippy::pedantic ' ..
-                 '-Wclippy::unwrap_used')
+                 '-Wclippy::unwrap_used ' ..
+                 '-Aclippy::module_inception')
 end)

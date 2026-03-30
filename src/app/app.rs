@@ -4,11 +4,11 @@ use winit::event_loop::EventLoop;
 use winit::event_loop::ActiveEventLoop;
 use winit::event::WindowEvent;
 use winit::error::EventLoopError;
-use winit::error::OsError;
 
 use crate::app::window_manager::WindowManager;
 use crate::window::WindowHandler;
 use crate::window::Window;
+use crate::error::Error;
 
 
 struct AppHandler<A: App> {
@@ -23,6 +23,7 @@ pub trait App {
     fn start(&mut self, _: &mut AppContext);
 }
 
+
 /// # Errors
 ///
 /// Propagates winit error if creating or start of event loop fails.
@@ -32,7 +33,7 @@ pub fn start<T: App + 'static>(app: T) -> Result<(), EventLoopError>
 
     let mut app_handler = AppHandler::<T> {
         app,
-        window_manager: WindowManager::new()
+        window_manager: WindowManager::new(),
     };
 
     event_loop.run_app(&mut app_handler)?;
@@ -72,17 +73,28 @@ impl<T: App + 'static> ApplicationHandler<AppHandler<T>> for AppHandler<T> {
                     event_loop.exit();
                 }
             }
+            WindowEvent::Resized(size) => {
+
+                let Some(window) = self.get_window(window_id) else { return; };
+
+                window.get_window().event(event);
+            }
             _ => {
 
-                let window_handler : &mut WindowHandler = match self.window_manager.get_window(window_id) {
-                    Some(window_handler) => window_handler,
-                    None => return,
-                };
+                let Some(window) = self.get_window(window_id) else { return; };
 
-                window_handler.get_window().event(event);
+                window.get_window().event(event);
             }
         }
+    }
+}
 
+
+impl<T: App> AppHandler<T> {
+
+    fn get_window(&mut self, window_id: winit::window::WindowId) -> Option<&mut WindowHandler> {
+
+        self.window_manager.get_window(window_id)
     }
 }
 
@@ -99,7 +111,7 @@ impl AppContext<'_, '_> {
     /// # Errors
     ///
     /// Propagates winit error if creation of window fails.
-    pub fn create_window<T: Window + 'static>(&mut self, window: T) -> Result<(), OsError> {
+    pub fn create_window<T: Window + 'static>(&mut self, window: T) -> Result<(), Error> {
 
         self.window_manager.create_window(self.event_loop, window)?;
 

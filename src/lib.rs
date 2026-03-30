@@ -9,6 +9,6 @@ pub use app::AppContext;
 
 mod window;
 
-//pub use window::WindowManager;
-
 pub use window::Window;
+
+mod error;

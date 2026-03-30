@@ -1,6 +1,7 @@
 
 mod app;
 mod window_manager;
+mod renderer;
 
 pub use app::App;
 
