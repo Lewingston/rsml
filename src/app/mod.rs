@@ -1,14 +1,8 @@
 
 mod app;
+mod window_manager;
 
 pub use app::App;
 
 pub use app::start;
-
 pub use app::AppContext;
-
-mod window;
-
-//pub use window::WindowManager;
-
-pub use window::Window;
