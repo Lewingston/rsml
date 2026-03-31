@@ -73,7 +73,7 @@ impl<T: App + 'static> ApplicationHandler<AppHandler<T>> for AppHandler<T> {
                     event_loop.exit();
                 }
             }
-            WindowEvent::Resized(size) => {
+            WindowEvent::Resized(_size) => {
 
                 let Some(window) = self.get_window(window_id) else { return; };
 

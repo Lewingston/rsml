@@ -9,11 +9,13 @@ use crate::window::WindowHandler;
 
 use crate::error::Error;
 
+use std::sync::Arc;
+
 
 pub struct WindowManager {
 
     window_map: std::collections::HashMap<WindowId, WindowHandler>,
-    renderer: Option<Renderer>,
+    renderer:   Option<Renderer>,
 }
 
 
@@ -23,7 +25,7 @@ impl WindowManager {
 
         Self {
             window_map: std::collections::HashMap::new(),
-            renderer: None
+            renderer:   None
         }
     }
 
@@ -33,42 +35,49 @@ impl WindowManager {
         window: T) -> Result<(), Error>
     {
 
-        let mut window_attributes = WinitWindow::default_attributes();
-        window_attributes.visible = false;
+        let window_handler = WindowHandler::new(window, event_loop, self)?;
 
-        let winit_window = match event_loop.create_window(window_attributes) {
-            Ok(window) => window,
-            Err(err) => return Err(Error::FailedToCreateWindow(err.to_string()))
-        };
+        self.window_map.insert(window_handler.get_window_id(), window_handler);
 
-        if self.window_map.is_empty() {
+        Ok(())
+    }
 
-            self.init_renderer(&winit_window)?;
+
+    pub fn create_window_surface (
+        &mut self,
+        winit_window: Arc<WinitWindow>) -> Result<wgpu::Surface<'static>, Error>
+    {
+        match &self.renderer {
+            Some(renderer) => renderer.create_surface(winit_window),
+            None           => self.init_renderer_and_create_surface(winit_window)
         }
-
-        winit_window.set_visible(true);
-
-        let window_id = winit_window.id();
-        let window_handler = WindowHandler::new(window, winit_window);
-
-        self.window_map.insert(window_id, window_handler);
-
-        Ok(())
     }
 
 
-    fn init_renderer(&mut self, winit_window: &WinitWindow) -> Result<(), Error>
-    {
-        self.renderer = Some(pollster::block_on(
-            Renderer::new(winit_window)
-        )?);
+    pub fn get_surface_config(&self, surface: &wgpu::Surface) -> Result<wgpu::SurfaceConfiguration, Error> {
 
-        Ok(())
+        match &self.renderer {
+            Some(renderer) => Ok(renderer.get_surface_config(surface)),
+            None           => Err(Error::FailedToCreateWindowSurface("Renderer not initalized!".to_string()))
+        }
     }
 
 
-    pub fn get_window(&mut self, window_id: WindowId) -> Option<&mut WindowHandler>
+    fn init_renderer_and_create_surface(
+        &mut self,
+        winit_window: Arc<WinitWindow>) -> Result<wgpu::Surface<'static>, Error>
     {
+
+        let (renderer, surface) = pollster::block_on(Renderer::init_and_create_surface(winit_window))?;
+
+        self.renderer = Some(renderer);
+
+        Ok(surface)
+    }
+
+
+    pub fn get_window(&mut self, window_id: WindowId) -> Option<&mut WindowHandler> {
+
         self.window_map.get_mut(&window_id)
     }
 

@@ -9,4 +9,7 @@ pub enum Error {
 
     #[error("Failed to create window: {0}")]
     FailedToCreateWindow(String),
+
+    #[error("Failed to create window surface: {0}")]
+    FailedToCreateWindowSurface(String),
 }
