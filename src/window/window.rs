@@ -85,8 +85,6 @@ impl WindowHandler {
         self.surface_config.width  = width;
         self.surface_config.height = height;
         self.surface.configure(device, &self.surface_config);
-
-        println!("Window resized!");
     }
 
 
