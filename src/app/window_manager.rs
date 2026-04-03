@@ -60,6 +60,16 @@ impl WindowManager {
     }
 
 
+    pub fn draw_window(&self, window_id: WindowId) {
+
+        let Some(window) = self.window_map.get(&window_id) else { return; };
+
+        let Some(renderer) = self.renderer.as_ref() else { return; };
+
+        window.draw(renderer);
+    }
+
+
     pub fn get_window(&mut self, window_id: WindowId) -> Option<&mut WindowHandler> {
 
         self.window_map.get_mut(&window_id)

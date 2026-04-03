@@ -73,6 +73,10 @@ impl<T: App + 'static> ApplicationHandler<AppHandler<T>> for AppHandler<T> {
                     event_loop.exit();
                 }
             }
+            WindowEvent::RedrawRequested => {
+
+                self.window_manager.draw_window(window_id);
+            }
             WindowEvent::Resized(size) => {
 
                 self.window_manager.resize_window(window_id, size.width, size.height);
