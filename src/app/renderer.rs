@@ -17,6 +17,10 @@ pub struct Renderer {
 
 impl Renderer {
 
+
+    pub fn get_device(&self) -> &wgpu::Device { &self.device }
+
+
     pub async fn init_and_create_surface(window: Arc<WinitWindow>) -> Result<(Self, wgpu::Surface<'static>), Error> {
 
         let wgpu_instance = Renderer::create_instance();

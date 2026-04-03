@@ -76,12 +76,17 @@ impl WindowHandler {
     }
 
 
-    pub fn _resize(&mut self, width: u32, height: u32) {
-
-        self.surface_config.width = width;
+    pub fn resize(
+        &mut self,
+        width: u32,
+        height: u32,
+        device: &wgpu::Device
+    ) {
+        self.surface_config.width  = width;
         self.surface_config.height = height;
+        self.surface.configure(device, &self.surface_config);
 
-        //self.surface.configure(&self.surface_config);
+        println!("Window resized!");
     }
 
 

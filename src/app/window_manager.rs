@@ -50,6 +50,16 @@ impl WindowManager {
     }
 
 
+    pub fn resize_window(&mut self, window_id: WindowId, width: u32, height: u32) {
+
+        let Some(window) = self.window_map.get_mut(&window_id) else { return; };
+
+        let Some(renderer) = self.renderer.as_ref() else { return; };
+
+        window.resize(width, height, renderer.get_device());
+    }
+
+
     pub fn get_window(&mut self, window_id: WindowId) -> Option<&mut WindowHandler> {
 
         self.window_map.get_mut(&window_id)
