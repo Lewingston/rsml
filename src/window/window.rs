@@ -3,8 +3,8 @@ use winit::event::WindowEvent;
 use winit::window::Window as WinitWindow;
 use winit::event_loop::ActiveEventLoop;
 
-use crate::app::window_manager::WindowManager;
 use crate::error::Error;
+use crate::app::renderer::Renderer;
 
 use std::sync::Arc;
 
@@ -27,36 +27,61 @@ pub struct WindowHandler {
 }
 
 
+
 impl WindowHandler {
 
+
     pub fn new<T: Window + 'static>(
-        window:         T,
-        event_loop:     &ActiveEventLoop,
-        window_manager: &mut WindowManager) -> Result<Self, Error>
-    {
+        window:     T,
+        event_loop: &ActiveEventLoop,
+        renderer:   &Renderer
+    ) -> Result<Self, Error>{
 
-        let mut window_attributes = WinitWindow::default_attributes();
-        window_attributes.visible = false;
+        let winit_window = create_winit_window(event_loop)?;
 
-        let winit_window = Arc::new(match event_loop.create_window(window_attributes) {
-            Ok(window) => window,
-            Err(err)   => return Err(Error::FailedToCreateWindow(err.to_string()))
-        });
+        let surface = renderer.create_surface(winit_window.clone())?;
 
-        let surface = window_manager.create_window_surface(winit_window.clone())?;
-
-        let mut surface_config = window_manager.get_surface_config(&surface)?;
-        surface_config.width  = winit_window.inner_size().width;
-        surface_config.height = winit_window.inner_size().height;
+        let surface_config = create_surface_config(&winit_window, &surface, renderer);
 
         winit_window.set_visible(true);
 
         Ok(Self {
-            window:         Box::new(window),
-            winit_window:   winit_window,
-            surface:        surface,
-            surface_config: surface_config,
+            window: Box::new(window),
+            winit_window,
+            surface,
+            surface_config
         })
+    }
+
+
+    pub fn create_window_and_renderer<T: Window + 'static>(
+        window:     T,
+        event_loop: &ActiveEventLoop,
+    ) -> Result<(Self, Renderer), Error>
+    {
+        let winit_window = create_winit_window(event_loop)?;
+
+        let (renderer, surface) = pollster::block_on(Renderer::init_and_create_surface(winit_window.clone()))?;
+
+        let surface_config = create_surface_config(&winit_window, &surface, &renderer);
+
+        winit_window.set_visible(true);
+
+        Ok((Self {
+            window: Box::new(window),
+            winit_window,
+            surface,
+            surface_config
+        }, renderer))
+    }
+
+
+    pub fn _resize(&mut self, width: u32, height: u32) {
+
+        self.surface_config.width = width;
+        self.surface_config.height = height;
+
+        //self.surface.configure(&self.surface_config);
     }
 
 
@@ -75,4 +100,31 @@ impl WindowHandler {
     pub fn get_window_id(&self) -> winit::window::WindowId {
         self.winit_window.id()
     }
+}
+
+
+fn create_winit_window(event_loop: &ActiveEventLoop) -> Result<Arc<WinitWindow>, Error> {
+
+    let mut window_attributes = WinitWindow::default_attributes();
+    window_attributes.visible = false;
+
+    match event_loop.create_window(window_attributes) {
+        Ok(window) => return Ok(Arc::new(window)),
+        Err(err)   => return Err(Error::FailedToCreateWindow(err.to_string()))
+    }
+}
+
+
+fn create_surface_config(
+    winit_window: &WinitWindow,
+    surface:      &wgpu::Surface,
+    renderer:     &Renderer
+) -> wgpu::SurfaceConfiguration
+{
+
+    let mut surface_config = renderer.get_surface_config(surface);
+    surface_config.width   = winit_window.inner_size().width;
+    surface_config.height  = winit_window.inner_size().height;
+
+    return surface_config;
 }

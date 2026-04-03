@@ -11,9 +11,9 @@ use crate::window::Window;
 use crate::error::Error;
 
 
-struct AppHandler<A: App> {
+struct AppHandler<AppType: App> {
 
-    app: A,
+    app:            AppType,
     window_manager: WindowManager,
 }
 
@@ -48,7 +48,7 @@ impl<T: App + 'static> ApplicationHandler<AppHandler<T>> for AppHandler<T> {
 
         let mut context = AppContext {
             event_loop,
-            window_manager: &mut self.window_manager
+            window_manager: &mut self.window_manager,
         };
 
         self.app.start(&mut context);
@@ -77,6 +77,10 @@ impl<T: App + 'static> ApplicationHandler<AppHandler<T>> for AppHandler<T> {
 
                 let Some(window) = self.get_window(window_id) else { return; };
 
+                //let Some(renderer) = self.renderer.as_ref() else { return; };
+
+                //window.resize(_size.width, _size.height);
+
                 window.get_window().event(event);
             }
             _ => {
@@ -101,7 +105,7 @@ impl<T: App> AppHandler<T> {
 
 pub struct AppContext<'a, 'b> {
 
-    event_loop: &'a ActiveEventLoop,
+    event_loop:     &'a ActiveEventLoop,
     window_manager: &'b mut WindowManager,
 }
 
