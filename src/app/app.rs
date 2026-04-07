@@ -27,8 +27,8 @@ pub trait App {
 /// # Errors
 ///
 /// Propagates winit error if creating or start of event loop fails.
-pub fn start<T: App + 'static>(app: T) -> Result<(), EventLoopError>
-{
+pub fn start<T: App + 'static>(app: T) -> Result<(), EventLoopError> {
+
     let event_loop: EventLoop<AppHandler<T>> = EventLoop::with_user_event().build()?;
 
     let mut app_handler = AppHandler::<T> {
@@ -44,6 +44,7 @@ pub fn start<T: App + 'static>(app: T) -> Result<(), EventLoopError>
 
 impl<T: App + 'static> ApplicationHandler<AppHandler<T>> for AppHandler<T> {
 
+
     fn resumed(&mut self, event_loop: &ActiveEventLoop) {
 
         let mut context = AppContext {
@@ -54,9 +55,11 @@ impl<T: App + 'static> ApplicationHandler<AppHandler<T>> for AppHandler<T> {
         self.app.start(&mut context);
     }
 
+
     fn user_event(&mut self, _event_loop: &ActiveEventLoop, mut _app: AppHandler<T>) {
 
     }
+
 
     fn window_event(
         &mut self,

@@ -14,27 +14,46 @@ impl rsml::App for MyApp {
     }
 }
 
+
+struct MainScene {
+
+    pub render_pipeline: rsml::DefaultRenderPipeline,
+    pub vertex_buffer:   rsml::VertexBuffer
+}
+
+
 struct MainWindow {
 
+    scene: Option<MainScene>
 }
 
 impl MainWindow {
 
     fn new() -> Self {
 
-        Self{}
+        Self{
+            scene: None
+        }
     }
 }
 
 impl rsml::Window for MainWindow {
 
-    fn start(&mut self) {
+    fn start(&mut self, context: rsml::WindowContext) {
 
         println!("MainWindow start");
+
+        self.scene = Some(MainScene {
+            render_pipeline: rsml::DefaultRenderPipeline::new(context.device, context.surface_config),
+            vertex_buffer: rsml::VertexBuffer::create_triangle(context.device)
+        });
     }
 
-    fn draw(&mut self) {
+    fn draw(&mut self, render_target: &mut rsml::RenderTarget) {
 
+        let Some(scene) = &self.scene else { return; };
+
+        render_target.draw(&scene.vertex_buffer, scene.render_pipeline.get_pipeline());
     }
 
     fn event(&mut self, event: winit::event::WindowEvent) {
@@ -57,12 +76,12 @@ impl SecondaryWindow {
 
 impl rsml::Window for SecondaryWindow {
 
-    fn start(&mut self) {
+    fn start(&mut self, _context: rsml::WindowContext) {
 
         println!("SecondaryWindow start");
     }
 
-    fn draw(&mut self) {
+    fn draw(&mut self, _render_target: &mut rsml::RenderTarget) {
 
     }
 

@@ -5,16 +5,16 @@ use winit::event_loop::ActiveEventLoop;
 
 use crate::error::Error;
 use crate::app::renderer::Renderer;
+use crate::window::render_target::RenderTarget;
 
 use std::sync::Arc;
 
+
 pub trait Window {
 
-    fn start(&mut self);
+    fn start(&mut self, window_context: WindowContext);
 
-    fn draw(&mut self) {
-
-    }
+    fn draw(&mut self, render_target: &mut RenderTarget);
 
     fn event(&mut self, event: WindowEvent);
 }
@@ -22,12 +22,19 @@ pub trait Window {
 
 pub struct WindowHandler {
 
-    window:         Box<dyn Window>,
-    winit_window:   Arc<WinitWindow>,
-    surface:        wgpu::Surface<'static>,
-    surface_config: wgpu::SurfaceConfiguration,
+    window:          Box<dyn Window>,
+    winit_window:    Arc<WinitWindow>,
+    surface:         wgpu::Surface<'static>,
+    surface_config:  wgpu::SurfaceConfiguration
 }
 
+
+pub struct WindowContext<'a, 'b, 'c> {
+
+    pub device:         &'a wgpu::Device,
+    pub surface:        &'b wgpu::Surface<'static>,
+    pub surface_config: &'c wgpu::SurfaceConfiguration
+}
 
 
 impl WindowHandler {
@@ -37,7 +44,7 @@ impl WindowHandler {
         window:     T,
         event_loop: &ActiveEventLoop,
         renderer:   &Renderer
-    ) -> Result<Self, Error>{
+    ) -> Result<Self, Error> {
 
         let winit_window = create_winit_window(event_loop)?;
 
@@ -45,36 +52,54 @@ impl WindowHandler {
 
         let surface_config = create_surface_config(&winit_window, &surface, renderer);
 
-        winit_window.set_visible(true);
-
-        Ok(Self {
+        let mut window_handler = Self {
             window: Box::new(window),
             winit_window,
             surface,
             surface_config
-        })
+        };
+
+        window_handler.start(renderer.get_device());
+
+        Ok(window_handler)
     }
 
 
     pub fn create_window_and_renderer<T: Window + 'static>(
         window:     T,
         event_loop: &ActiveEventLoop,
-    ) -> Result<(Self, Renderer), Error>
-    {
+    ) -> Result<(Self, Renderer), Error> {
+
         let winit_window = create_winit_window(event_loop)?;
 
         let (renderer, surface) = pollster::block_on(Renderer::init_and_create_surface(winit_window.clone()))?;
 
         let surface_config = create_surface_config(&winit_window, &surface, &renderer);
 
-        winit_window.set_visible(true);
-
-        Ok((Self {
+        let mut window_handler = Self {
             window: Box::new(window),
             winit_window,
             surface,
             surface_config
-        }, renderer))
+        };
+
+        window_handler.start(renderer.get_device());
+
+        Ok((window_handler, renderer))
+    }
+
+
+    fn start(&mut self, device: &wgpu::Device) {
+
+        let context = WindowContext {
+            device,
+            surface: &self.surface,
+            surface_config: &self.surface_config
+        };
+
+        self.window.start(context);
+
+        self.winit_window.set_visible(true);
     }
 
 
@@ -90,7 +115,7 @@ impl WindowHandler {
     }
 
 
-    pub fn draw(&self, renderer: &Renderer) {
+    pub fn draw(&mut self, renderer: &Renderer) {
 
         let output = match self.surface.get_current_texture() {
 
@@ -122,7 +147,7 @@ impl WindowHandler {
         });
 
         {
-            let _render_pass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
+            let render_pass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
                 label: Some("Render Pass"),
                 color_attachments: &[Some(wgpu::RenderPassColorAttachment {
                     view:           &view,
@@ -143,6 +168,13 @@ impl WindowHandler {
                 timestamp_writes:         None,
                 multiview_mask:           None
             });
+
+            let mut render_target = RenderTarget::new(render_pass);
+
+            self.window.draw(&mut render_target);
+
+            //render_pass.set_pipeline(self.render_pipeline.get_pipeline());
+            //render_pass.draw(0..3, 0..1);
         }
 
         renderer.get_queue().submit(std::iter::once(encoder.finish()));
@@ -167,8 +199,8 @@ fn create_winit_window(event_loop: &ActiveEventLoop) -> Result<Arc<WinitWindow>,
     window_attributes.visible = false;
 
     match event_loop.create_window(window_attributes) {
-        Ok(window) => return Ok(Arc::new(window)),
-        Err(err)   => return Err(Error::FailedToCreateWindow(err.to_string()))
+        Ok(window) => Ok(Arc::new(window)),
+        Err(err)   => Err(Error::FailedToCreateWindow(err.to_string()))
     }
 }
 
@@ -177,12 +209,11 @@ fn create_surface_config(
     winit_window: &WinitWindow,
     surface:      &wgpu::Surface,
     renderer:     &Renderer
-) -> wgpu::SurfaceConfiguration
-{
+) -> wgpu::SurfaceConfiguration {
 
     let mut surface_config = renderer.get_surface_config(surface);
     surface_config.width   = winit_window.inner_size().width;
     surface_config.height  = winit_window.inner_size().height;
 
-    return surface_config;
+    surface_config
 }

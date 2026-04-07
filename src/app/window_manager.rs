@@ -32,21 +32,21 @@ impl WindowManager {
         &mut self,
         event_loop: &ActiveEventLoop,
         window: WindowType
-    ) -> Result<(), Error>
-    {
-        match &self.renderer {
-            Some(renderer) => {
-                let window_handler = WindowHandler::new(window, event_loop, renderer)?;
-                self.window_map.insert(window_handler.get_window_id(), window_handler);
-                Ok(())
-            }
-            None => {
-                let (window_handler, renderer) = WindowHandler::create_window_and_renderer(window, event_loop)?;
-                self.window_map.insert(window_handler.get_window_id(), window_handler);
-                self.renderer = Some(renderer);
-                Ok(())
-            }
+    ) -> Result<(), Error> {
+
+        if let Some(renderer) = &self.renderer {
+
+            let window_hadnler = WindowHandler::new(window, event_loop, renderer)?;
+            self.window_map.insert(window_hadnler.get_window_id(), window_hadnler);
+
+        } else {
+
+            let (window_handler, renderer) = WindowHandler::create_window_and_renderer(window, event_loop)?;
+            self.window_map.insert(window_handler.get_window_id(), window_handler);
+            self.renderer = Some(renderer);
         }
+
+        Ok(())
     }
 
 
@@ -60,9 +60,9 @@ impl WindowManager {
     }
 
 
-    pub fn draw_window(&self, window_id: WindowId) {
+    pub fn draw_window(&mut self, window_id: WindowId) {
 
-        let Some(window) = self.window_map.get(&window_id) else { return; };
+        let Some(window) = self.window_map.get_mut(&window_id) else { return; };
 
         let Some(renderer) = self.renderer.as_ref() else { return; };
 
