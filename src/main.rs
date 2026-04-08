@@ -17,8 +17,7 @@ impl rsml::App for MyApp {
 
 struct MainScene {
 
-    pub render_pipeline: rsml::DefaultRenderPipeline,
-    pub vertex_buffer:   rsml::VertexBuffer
+    pub triangle: rsml::Shape
 }
 
 
@@ -44,8 +43,7 @@ impl rsml::Window for MainWindow {
         println!("MainWindow start");
 
         self.scene = Some(MainScene {
-            render_pipeline: rsml::DefaultRenderPipeline::new(context.device, context.surface_config),
-            vertex_buffer: rsml::VertexBuffer::create_triangle(context.device)
+            triangle: rsml::Shape::create_triangle(context.renderer)
         });
     }
 
@@ -53,7 +51,7 @@ impl rsml::Window for MainWindow {
 
         let Some(scene) = &self.scene else { return; };
 
-        render_target.draw(&scene.vertex_buffer, scene.render_pipeline.get_pipeline());
+        render_target.draw(&scene.triangle);
     }
 
     fn event(&mut self, event: winit::event::WindowEvent) {
@@ -62,27 +60,42 @@ impl rsml::Window for MainWindow {
     }
 }
 
+struct SecondaryScene {
+
+    pub square: rsml::Shape
+}
+
 struct SecondaryWindow {
 
+    scene: Option<SecondaryScene>
 }
 
 impl SecondaryWindow {
 
     fn new() -> Self {
 
-        Self{}
+        Self{
+            scene: None
+        }
     }
 }
 
 impl rsml::Window for SecondaryWindow {
 
-    fn start(&mut self, _context: rsml::WindowContext) {
+    fn start(&mut self, context: rsml::WindowContext) {
 
         println!("SecondaryWindow start");
+
+        self.scene = Some(SecondaryScene {
+            square: rsml::Shape::create_rectangle(context.renderer, 0.5, 0.5)
+        });
     }
 
-    fn draw(&mut self, _render_target: &mut rsml::RenderTarget) {
+    fn draw(&mut self, render_target: &mut rsml::RenderTarget) {
 
+        let Some(scene) = &self.scene else { return; };
+
+        render_target.draw(&scene.square);
     }
 
     fn event(&mut self, event: winit::event::WindowEvent) {

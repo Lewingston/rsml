@@ -31,7 +31,7 @@ pub struct WindowHandler {
 
 pub struct WindowContext<'a, 'b, 'c> {
 
-    pub device:         &'a wgpu::Device,
+    pub renderer:       &'a Renderer,
     pub surface:        &'b wgpu::Surface<'static>,
     pub surface_config: &'c wgpu::SurfaceConfiguration
 }
@@ -59,7 +59,7 @@ impl WindowHandler {
             surface_config
         };
 
-        window_handler.start(renderer.get_device());
+        window_handler.start(renderer);
 
         Ok(window_handler)
     }
@@ -83,16 +83,16 @@ impl WindowHandler {
             surface_config
         };
 
-        window_handler.start(renderer.get_device());
+        window_handler.start(&renderer);
 
         Ok((window_handler, renderer))
     }
 
 
-    fn start(&mut self, device: &wgpu::Device) {
+    fn start(&mut self, renderer: &Renderer) {
 
         let context = WindowContext {
-            device,
+            renderer,
             surface: &self.surface,
             surface_config: &self.surface_config
         };

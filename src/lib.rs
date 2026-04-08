@@ -15,7 +15,9 @@ pub use window::WindowContext;
 
 mod drawable;
 
-pub use drawable::default_render_pipeline::DefaultRenderPipeline;
 pub use drawable::vertex_buffer::VertexBuffer;
+pub use drawable::drawable::TextureVertex;
+pub use drawable::drawable::ColorVertex;
+pub use drawable::drawable::Shape;
 
 mod error;

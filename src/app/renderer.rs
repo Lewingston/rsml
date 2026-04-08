@@ -3,7 +3,10 @@ use winit::window::Window as WinitWindow;
 
 use crate::error::Error;
 
+use crate::drawable::drawable::ColorVertex;
+
 use std::sync::Arc;
+use std::rc::Rc;
 
 
 pub struct Renderer {
@@ -12,6 +15,9 @@ pub struct Renderer {
     wgpu_adapter:  wgpu::Adapter,
     device:        wgpu::Device,
     queue:         wgpu::Queue,
+
+    default_color_render_pipeline:   Rc<wgpu::RenderPipeline>,
+    default_texture_render_pipeline: Rc<wgpu::RenderPipeline>,
 }
 
 
@@ -24,6 +30,18 @@ impl Renderer {
     pub fn get_queue(&self) -> &wgpu::Queue { &self.queue }
 
 
+    pub fn get_default_color_render_pipeline(&self) -> Rc<wgpu::RenderPipeline> {
+
+        self.default_color_render_pipeline.clone()
+    }
+
+
+    pub fn get_default_texture_render_pipeline(&self) -> Rc<wgpu::RenderPipeline> {
+
+        self.default_texture_render_pipeline.clone()
+    }
+
+
     pub async fn init_and_create_surface(window: Arc<WinitWindow>) -> Result<(Self, wgpu::Surface<'static>), Error> {
 
         let wgpu_instance = Renderer::create_instance();
@@ -32,11 +50,21 @@ impl Renderer {
 
         let (device, queue) = Renderer::create_device_and_queue(&wgpu_adapter).await?;
 
+        let surface_config = get_surface_config(&surface, &wgpu_adapter);
+
+        let default_color_render_pipeline = Rc::new(
+            create_default_color_render_pipeline(&device, &surface_config));
+
+        let default_texture_render_pipeline = Rc::new(
+            create_default_texture_render_pipeline(&device, &surface_config));
+
         Ok((Self {
             wgpu_instance,
             wgpu_adapter,
             device,
-            queue
+            queue,
+            default_color_render_pipeline,
+            default_texture_render_pipeline
         }, surface))
     }
 
@@ -52,23 +80,7 @@ impl Renderer {
 
     pub fn get_surface_config(&self, surface: &wgpu::Surface) -> wgpu::SurfaceConfiguration {
 
-        let surface_caps = surface.get_capabilities(&self.wgpu_adapter);
-
-        let surface_format = surface_caps.formats.iter()
-            .find(|f| f.is_srgb())
-            .copied()
-            .unwrap_or(surface_caps.formats[0]);
-
-        wgpu::SurfaceConfiguration {
-            usage:                         wgpu::TextureUsages::RENDER_ATTACHMENT,
-            format:                        surface_format,
-            width:                         0,
-            height:                        0,
-            present_mode:                  surface_caps.present_modes[0],
-            alpha_mode:                    surface_caps.alpha_modes[0],
-            view_formats:                  vec![],
-            desired_maximum_frame_latency: 2,
-        }
+        get_surface_config(surface, &self.wgpu_adapter)
     }
 
 
@@ -133,4 +145,116 @@ impl Renderer {
             Err(err)            => Err(Error::FailedToCreateRenderer(err.to_string()))
         }
     }
+}
+
+
+fn get_surface_config(surface: &wgpu::Surface, adapter: &wgpu::Adapter) -> wgpu::SurfaceConfiguration {
+
+    let surface_caps = surface.get_capabilities(adapter);
+
+    let surface_format = surface_caps.formats.iter()
+        .find(|f| f.is_srgb())
+        .copied()
+        .unwrap_or(surface_caps.formats[0]);
+
+    wgpu::SurfaceConfiguration {
+        usage:                         wgpu::TextureUsages::RENDER_ATTACHMENT,
+        format:                        surface_format,
+        width:                         0,
+        height:                        0,
+        present_mode:                  surface_caps.present_modes[0],
+        alpha_mode:                    surface_caps.alpha_modes[0],
+        view_formats:                  vec![],
+        desired_maximum_frame_latency: 2,
+    }
+}
+
+
+fn create_pipeline(
+    device:               &wgpu::Device,
+    shader:               &wgpu::ShaderModule,
+    surface_config:       &wgpu::SurfaceConfiguration,
+    vertex_buffer_layout: wgpu::VertexBufferLayout,
+) -> wgpu::RenderPipeline {
+
+    let render_pipeline_layout =
+        device.create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {
+            label:              Some("Default layout descriptor"),
+            bind_group_layouts: &[],
+            immediate_size:     0
+        });
+
+    device.create_render_pipeline(&wgpu::RenderPipelineDescriptor {
+        label:  Some("Default render pipeline"),
+        layout: Some(&render_pipeline_layout),
+        vertex: wgpu::VertexState {
+            module:              shader,
+            entry_point:         Some("vs_main"),
+            buffers:             &[vertex_buffer_layout],
+            compilation_options: wgpu::PipelineCompilationOptions::default()
+        },
+        fragment: Some(wgpu::FragmentState {
+            module: shader,
+            entry_point: Some("fs_main"),
+            targets: &[Some(wgpu::ColorTargetState {
+                format:     surface_config.format,
+                blend:      Some(wgpu::BlendState::REPLACE),
+                write_mask: wgpu::ColorWrites::ALL
+            })],
+            compilation_options: wgpu::PipelineCompilationOptions::default()
+        }),
+        primitive: wgpu::PrimitiveState {
+            topology:           wgpu::PrimitiveTopology::TriangleList,
+            strip_index_format: None,
+            front_face:         wgpu::FrontFace::Ccw,
+            cull_mode:          Some(wgpu::Face::Back),
+            polygon_mode:       wgpu::PolygonMode::Fill,
+            unclipped_depth:    false,
+            conservative:       false,
+        },
+        depth_stencil: None,
+        multisample: wgpu::MultisampleState {
+            count: 1,
+            mask:  !0,
+            alpha_to_coverage_enabled: false,
+        },
+        multiview_mask: None,
+        cache:          None
+    })
+}
+
+
+fn create_default_color_render_pipeline(
+    device: &wgpu::Device,
+    surface_config: &wgpu::SurfaceConfiguration
+) -> wgpu::RenderPipeline {
+
+    let shader = device.create_shader_module(wgpu::ShaderModuleDescriptor {
+        label:  Some("Default color shader"),
+        source: wgpu::ShaderSource::Wgsl(include_str!("default_color_shader.wgsl").into())
+    });
+
+    let vertex_buffer_layout = ColorVertex::get_layout();
+
+    create_pipeline(device, &shader, surface_config, vertex_buffer_layout)
+}
+
+
+fn create_default_texture_render_pipeline(
+    device: &wgpu::Device,
+    surface_config: &wgpu::SurfaceConfiguration
+) ->wgpu::RenderPipeline {
+
+    /*
+    let shader = device.create_shader_module(wgpu::ShaderModuleDescriptor {
+        label: Some("Default texture shader"),
+        source: wgpu::ShaderSource::Wgsl(include_str!("default_texture_shader.wgsl").into())
+    });
+
+    let vertex_buffer_layout = TextureVertex::get_layout();
+
+    create_pipeline(device, &shader, surface_config, vertex_buffer_layout)
+    */
+
+    create_default_color_render_pipeline(device, surface_config)
 }
