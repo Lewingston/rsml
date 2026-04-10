@@ -5,6 +5,7 @@ use std::rc::Rc;
 
 use crate::renderer::Renderer;
 use crate::renderer::render_target::RenderTarget;
+use crate::renderer::camera::Camera;
 use crate::drawable::texture::Texture;
 
 
@@ -204,9 +205,13 @@ impl Drawable for Shape {
 
     fn draw(&self, render_target: &mut RenderTarget) {
 
+        let camera = render_target.get_camera();
+
         let pass : &mut wgpu::RenderPass  = render_target.get_render_pass();
 
         pass.set_pipeline(self.render_pipeline.as_ref());
+
+        pass.set_bind_group(0, camera.get_bind_group(), &[]);
 
         pass.set_vertex_buffer(0, self.vertex_buffer.slice(..));
 
@@ -328,11 +333,15 @@ impl Drawable for Sprite {
 
     fn draw(&self, render_target: &mut RenderTarget) {
 
+        let camera = render_target.get_camera();
+
         let pass : &mut wgpu::RenderPass = render_target.get_render_pass();
 
         pass.set_pipeline(self.render_pipeline.as_ref());
 
         pass.set_bind_group(0, &self.texture_bind_group, &[]);
+
+        pass.set_bind_group(1, camera.get_bind_group(), &[]);
 
         pass.set_vertex_buffer(0, self.vertex_buffer.slice(..));
 

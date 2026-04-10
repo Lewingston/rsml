@@ -7,8 +7,10 @@ use crate::error::Error;
 
 use crate::renderer::Renderer;
 use crate::renderer::render_target::RenderTarget;
+use crate::renderer::camera::Camera;
 
 use std::sync::Arc;
+use std::rc::Rc;
 
 
 pub trait Window {
@@ -26,7 +28,8 @@ pub struct WindowHandler {
     window:          Box<dyn Window>,
     winit_window:    Arc<WinitWindow>,
     surface:         wgpu::Surface<'static>,
-    surface_config:  wgpu::SurfaceConfiguration
+    surface_config:  wgpu::SurfaceConfiguration,
+    camera:          Rc<Camera>
 }
 
 
@@ -53,11 +56,14 @@ impl WindowHandler {
 
         let surface_config = create_surface_config(&winit_window, &surface, renderer);
 
+        let camera = Rc::new(Camera::new(renderer.get_device(), surface_config.width as f32 / surface_config.height as f32));
+
         let mut window_handler = Self {
             window: Box::new(window),
             winit_window,
             surface,
-            surface_config
+            surface_config,
+            camera
         };
 
         window_handler.start(renderer);
@@ -77,11 +83,14 @@ impl WindowHandler {
 
         let surface_config = create_surface_config(&winit_window, &surface, &renderer);
 
+        let camera = Rc::new(Camera::new(renderer.get_device(), surface_config.width as f32 / surface_config.height as f32));
+
         let mut window_handler = Self {
             window: Box::new(window),
             winit_window,
             surface,
-            surface_config
+            surface_config,
+            camera
         };
 
         window_handler.start(&renderer);
@@ -106,7 +115,7 @@ impl WindowHandler {
 
     pub fn resize(
         &mut self,
-        width: u32,
+        width:  u32,
         height: u32,
         device: &wgpu::Device
     ) {
@@ -170,7 +179,7 @@ impl WindowHandler {
                 multiview_mask:           None
             });
 
-            let mut render_target = RenderTarget::new(render_pass);
+            let mut render_target = RenderTarget::new(render_pass, self.camera.clone());
 
             self.window.draw(&mut render_target);
         }

@@ -7,6 +7,8 @@ use crate::drawable::drawable::ColorVertex;
 use crate::drawable::drawable::TextureVertex;
 use crate::drawable::texture::Texture;
 
+use crate::renderer::camera::Camera;
+
 use std::sync::Arc;
 use std::rc::Rc;
 
@@ -244,10 +246,12 @@ fn create_default_color_render_pipeline(
 
     let vertex_buffer_layout = ColorVertex::get_layout();
 
+    let camera_layout = Camera::get_bind_group_layout(device);
+
     let pipeline_layout =
         device.create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {
             label:              Some("Color pipeline layout descriptor"),
-            bind_group_layouts: &[],
+            bind_group_layouts: &[Some(&camera_layout)],
             immediate_size:     0
         });
 
@@ -272,12 +276,14 @@ fn create_default_texture_render_pipeline(
 
     let vertex_buffer_layout = TextureVertex::get_layout();
 
-    let layout = Texture::get_default_bind_group_layout(device);
+    let texture_layout = Texture::get_default_bind_group_layout(device);
+
+    let camera_layout = Camera::get_bind_group_layout(device);
 
     let pipeline_layout =
         device.create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {
             label: Some("Texture pipeline layout descriptor"),
-            bind_group_layouts: &[Some(&layout)],
+            bind_group_layouts: &[Some(&texture_layout), Some(&camera_layout)],
             immediate_size: 0
         });
 
