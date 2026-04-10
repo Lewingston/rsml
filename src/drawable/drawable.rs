@@ -3,8 +3,8 @@ use wgpu::util::DeviceExt;
 
 use std::rc::Rc;
 
-use crate::app::renderer::Renderer;
-use crate::window::render_target::RenderTarget;
+use crate::renderer::Renderer;
+use crate::renderer::render_target::RenderTarget;
 use crate::drawable::texture::Texture;
 
 

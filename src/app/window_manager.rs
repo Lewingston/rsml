@@ -2,7 +2,7 @@
 use winit::window::WindowId;
 use winit::event_loop::ActiveEventLoop;
 
-use crate::app::renderer::Renderer;
+use crate::renderer::Renderer;
 use crate::window::Window;
 use crate::window::WindowHandler;
 

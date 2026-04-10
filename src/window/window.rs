@@ -4,8 +4,9 @@ use winit::window::Window as WinitWindow;
 use winit::event_loop::ActiveEventLoop;
 
 use crate::error::Error;
-use crate::app::renderer::Renderer;
-use crate::window::render_target::RenderTarget;
+
+use crate::renderer::Renderer;
+use crate::renderer::render_target::RenderTarget;
 
 use std::sync::Arc;
 
@@ -172,9 +173,6 @@ impl WindowHandler {
             let mut render_target = RenderTarget::new(render_pass);
 
             self.window.draw(&mut render_target);
-
-            //render_pass.set_pipeline(self.render_pipeline.get_pipeline());
-            //render_pass.draw(0..3, 0..1);
         }
 
         renderer.get_queue().submit(std::iter::once(encoder.finish()));

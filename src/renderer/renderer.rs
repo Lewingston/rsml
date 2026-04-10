@@ -26,25 +26,34 @@ pub struct Renderer {
 impl Renderer {
 
 
+    #[must_use]
     pub fn get_device(&self) -> &wgpu::Device { &self.device }
 
 
+    #[must_use]
     pub fn get_queue(&self) -> &wgpu::Queue { &self.queue }
 
 
+    #[must_use]
     pub fn get_default_color_render_pipeline(&self) -> Rc<wgpu::RenderPipeline> {
 
         self.default_color_render_pipeline.clone()
     }
 
 
+    #[must_use]
     pub fn get_default_texture_render_pipeline(&self) -> Rc<wgpu::RenderPipeline> {
 
         self.default_texture_render_pipeline.clone()
     }
 
 
-    pub async fn init_and_create_surface(window: Arc<WinitWindow>) -> Result<(Self, wgpu::Surface<'static>), Error> {
+    /// # Errors
+    ///
+    /// Returns an error if surface creation fails.
+    pub async fn init_and_create_surface(window: Arc<WinitWindow>)
+        -> Result<(Self, wgpu::Surface<'static>), Error>
+    {
 
         let wgpu_instance = Renderer::create_instance();
 
@@ -71,6 +80,9 @@ impl Renderer {
     }
 
 
+    /// # Errors
+    ///
+    /// Returns an error if surface creation fails.
     pub fn create_surface(&self, window: Arc<WinitWindow>) -> Result<wgpu::Surface<'static>, Error> {
 
         match self.wgpu_instance.create_surface(window) {

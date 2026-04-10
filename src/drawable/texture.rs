@@ -1,5 +1,5 @@
 
-use crate::app::renderer::Renderer;
+use crate::renderer::Renderer;
 use crate::error::Error;
 
 use image::GenericImageView;

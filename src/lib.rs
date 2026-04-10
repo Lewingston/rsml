@@ -10,7 +10,6 @@ pub use app::AppContext;
 mod window;
 
 pub use window::Window;
-pub use window::RenderTarget;
 pub use window::WindowContext;
 
 pub mod drawable;
@@ -21,5 +20,9 @@ pub use drawable::drawable::ColorVertex;
 pub use drawable::drawable::Shape;
 pub use drawable::drawable::Sprite;
 pub use drawable::texture::Texture;
+
+pub mod renderer;
+
+pub use renderer::render_target::RenderTarget;
 
 mod error;
