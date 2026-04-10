@@ -12,4 +12,7 @@ pub enum Error {
 
     #[error("Failed to create window surface: {0}")]
     FailedToCreateWindowSurface(String),
+
+    #[error("Failed to load image: {0}")]
+    FailedToLoadImage(String),
 }

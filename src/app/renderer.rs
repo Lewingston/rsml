@@ -4,6 +4,8 @@ use winit::window::Window as WinitWindow;
 use crate::error::Error;
 
 use crate::drawable::drawable::ColorVertex;
+use crate::drawable::drawable::TextureVertex;
+use crate::drawable::texture::Texture;
 
 use std::sync::Arc;
 use std::rc::Rc;
@@ -174,19 +176,13 @@ fn create_pipeline(
     device:               &wgpu::Device,
     shader:               &wgpu::ShaderModule,
     surface_config:       &wgpu::SurfaceConfiguration,
+    pipeline_layout:      &wgpu::PipelineLayout,
     vertex_buffer_layout: wgpu::VertexBufferLayout,
 ) -> wgpu::RenderPipeline {
 
-    let render_pipeline_layout =
-        device.create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {
-            label:              Some("Default layout descriptor"),
-            bind_group_layouts: &[],
-            immediate_size:     0
-        });
-
     device.create_render_pipeline(&wgpu::RenderPipelineDescriptor {
         label:  Some("Default render pipeline"),
-        layout: Some(&render_pipeline_layout),
+        layout: Some(pipeline_layout),
         vertex: wgpu::VertexState {
             module:              shader,
             entry_point:         Some("vs_main"),
@@ -236,7 +232,19 @@ fn create_default_color_render_pipeline(
 
     let vertex_buffer_layout = ColorVertex::get_layout();
 
-    create_pipeline(device, &shader, surface_config, vertex_buffer_layout)
+    let pipeline_layout =
+        device.create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {
+            label:              Some("Color pipeline layout descriptor"),
+            bind_group_layouts: &[],
+            immediate_size:     0
+        });
+
+    create_pipeline(
+        device,
+        &shader,
+        surface_config,
+        &pipeline_layout,
+        vertex_buffer_layout)
 }
 
 
@@ -245,7 +253,6 @@ fn create_default_texture_render_pipeline(
     surface_config: &wgpu::SurfaceConfiguration
 ) ->wgpu::RenderPipeline {
 
-    /*
     let shader = device.create_shader_module(wgpu::ShaderModuleDescriptor {
         label: Some("Default texture shader"),
         source: wgpu::ShaderSource::Wgsl(include_str!("default_texture_shader.wgsl").into())
@@ -253,8 +260,19 @@ fn create_default_texture_render_pipeline(
 
     let vertex_buffer_layout = TextureVertex::get_layout();
 
-    create_pipeline(device, &shader, surface_config, vertex_buffer_layout)
-    */
+    let layout = Texture::get_default_bind_group_layout(device);
 
-    create_default_color_render_pipeline(device, surface_config)
+    let pipeline_layout =
+        device.create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {
+            label: Some("Texture pipeline layout descriptor"),
+            bind_group_layouts: &[Some(&layout)],
+            immediate_size: 0
+        });
+
+    create_pipeline(
+        device,
+        &shader,
+        surface_config,
+        &pipeline_layout,
+        vertex_buffer_layout)
 }

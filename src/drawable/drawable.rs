@@ -4,19 +4,13 @@ use wgpu::util::DeviceExt;
 use std::rc::Rc;
 
 use crate::app::renderer::Renderer;
+use crate::window::render_target::RenderTarget;
+use crate::drawable::texture::Texture;
 
 
 pub trait Drawable {
 
-    fn get_vertex_buffer(&self) -> Option<&wgpu::Buffer>;
-
-    fn get_vertex_count(&self) -> u32;
-
-    fn get_index_buffer(&self) -> Option<&wgpu::Buffer>;
-
-    fn get_index_count(&self) -> u32;
-
-    fn get_pipeline(&self) -> &wgpu::RenderPipeline;
+    fn draw(&self, render_target: &mut RenderTarget);
 
 }
 
@@ -102,7 +96,7 @@ pub struct Shape {
     vertex_buffer: wgpu::Buffer,
     index_buffer:  wgpu::Buffer,
 
-    vertices: Vec<ColorVertex>,
+    _vertices: Vec<ColorVertex>,
     index_count: usize,
 
     render_pipeline: Rc<wgpu::RenderPipeline>
@@ -149,7 +143,7 @@ impl Shape {
         Self {
             vertex_buffer,
             index_buffer,
-            vertices,
+            _vertices: vertices,
             index_count,
             render_pipeline
         }
@@ -198,7 +192,7 @@ impl Shape {
         Self {
             vertex_buffer,
             index_buffer,
-            vertices,
+            _vertices: vertices,
             index_count,
             render_pipeline
         }
@@ -208,35 +202,144 @@ impl Shape {
 
 impl Drawable for Shape {
 
-    fn get_vertex_buffer(&self) -> Option<&wgpu::Buffer> {
+    fn draw(&self, render_target: &mut RenderTarget) {
 
-        Some(&self.vertex_buffer)
-    }
+        let pass : &mut wgpu::RenderPass  = render_target.get_render_pass();
 
-    fn get_vertex_count(&self) -> u32 {
+        pass.set_pipeline(self.render_pipeline.as_ref());
 
-        u32::try_from(self.vertices.len()).unwrap_or_default()
-    }
+        pass.set_vertex_buffer(0, self.vertex_buffer.slice(..));
 
-    fn get_index_buffer(&self) -> Option<&wgpu::Buffer> {
+        pass.set_index_buffer(self.index_buffer.slice(..), wgpu::IndexFormat::Uint16);
 
-        Some(&self.index_buffer)
-    }
+        let index_count = u32::try_from(self.index_count).unwrap_or_default();
 
-    fn get_index_count(&self) -> u32 {
-
-        u32::try_from(self.index_count).unwrap_or_default()
-    }
-
-    fn get_pipeline(&self) -> &wgpu::RenderPipeline {
-
-        self.render_pipeline.as_ref()
+        pass.draw_indexed(0..index_count, 0, 0..1);
     }
 }
 
 
-/*
 pub struct Sprite {
 
+    vertex_buffer: wgpu::Buffer,
+    index_buffer:  wgpu::Buffer,
+
+    index_count:  usize,
+
+    render_pipeline: Rc<wgpu::RenderPipeline>,
+
+    _texture: Rc<Texture>,
+
+    texture_bind_group: wgpu::BindGroup
 }
-*/
+
+
+impl Sprite {
+
+
+    #[must_use]
+    pub fn new(
+        renderer: &Renderer,
+        texture:  Rc<Texture>
+    ) -> Self {
+
+        let width = 1.0;
+        let height = 1.0;
+
+        let vertices = vec![
+            TextureVertex { position: [-width / 2.0,  height / 2.0, 0.0], texture_pos: [ 0.0, 0.0 ]},
+            TextureVertex { position: [ width / 2.0,  height / 2.0, 0.0], texture_pos: [ 1.0, 0.0 ]},
+            TextureVertex { position: [ width / 2.0, -height / 2.0, 0.0], texture_pos: [ 1.0, 1.0 ]},
+            TextureVertex { position: [-width / 2.0, -height / 2.0, 0.0], texture_pos: [ 0.0, 1.0 ]}
+        ];
+
+        let indices: &[u16] = &[
+            2, 1, 0,
+            0, 3, 2
+        ];
+
+        let device = renderer.get_device();
+
+        let vertex_buffer = device.create_buffer_init(
+            &wgpu::util::BufferInitDescriptor {
+                label:    Some("Sprite vertex buffer"),
+                contents: bytemuck::cast_slice(&vertices),
+                usage:    wgpu::BufferUsages::VERTEX
+            }
+        );
+
+        let index_buffer = device.create_buffer_init(
+            &wgpu::util::BufferInitDescriptor {
+                label:    Some("Sprite vertex buffer"),
+                contents: bytemuck::cast_slice(indices),
+                usage:    wgpu::BufferUsages::INDEX
+            }
+        );
+
+        let index_count = indices.len();
+
+        let render_pipeline = renderer.get_default_texture_render_pipeline();
+
+        let texture_bind_group = Self::create_bind_group(
+            renderer,
+            texture.get_view(),
+            texture.get_sampler());
+
+        Self {
+            vertex_buffer,
+            index_buffer,
+            index_count,
+            render_pipeline,
+            _texture: texture,
+            texture_bind_group
+        }
+    }
+
+
+    fn create_bind_group(
+        renderer:        &Renderer,
+        texture_view:    &wgpu::TextureView,
+        texture_sampler: &wgpu::Sampler
+    ) -> wgpu::BindGroup {
+
+        let layout = Texture::get_default_bind_group_layout(renderer.get_device());
+
+        renderer.get_device().create_bind_group(
+            &wgpu::BindGroupDescriptor {
+                layout: &layout,
+                entries: &[
+                    wgpu::BindGroupEntry {
+                        binding: 0,
+                        resource: wgpu::BindingResource::TextureView(texture_view)
+                    },
+                    wgpu::BindGroupEntry {
+                        binding: 1,
+                        resource: wgpu::BindingResource::Sampler(texture_sampler)
+                    }
+                ],
+                label: Some("texture bind group")
+            }
+        )
+    }
+}
+
+
+impl Drawable for Sprite {
+
+    fn draw(&self, render_target: &mut RenderTarget) {
+
+        let pass : &mut wgpu::RenderPass = render_target.get_render_pass();
+
+        pass.set_pipeline(self.render_pipeline.as_ref());
+
+        pass.set_bind_group(0, &self.texture_bind_group, &[]);
+
+        pass.set_vertex_buffer(0, self.vertex_buffer.slice(..));
+
+        pass.set_index_buffer(self.index_buffer.slice(..), wgpu::IndexFormat::Uint16);
+
+        let index_count = u32::try_from(self.index_count).unwrap_or_default();
+
+        pass.draw_indexed(0..index_count, 0, 0..1);
+    }
+}

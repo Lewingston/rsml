@@ -1,4 +1,8 @@
 
+use rsml::drawable::drawable::Drawable;
+
+use std::rc::Rc;
+
 struct MyApp {
 
 }
@@ -17,7 +21,8 @@ impl rsml::App for MyApp {
 
 struct MainScene {
 
-    pub triangle: rsml::Shape
+    pub triangle: rsml::Shape,
+    pub sprite:   rsml::Sprite
 }
 
 
@@ -42,8 +47,18 @@ impl rsml::Window for MainWindow {
 
         println!("MainWindow start");
 
+        let texture = Rc::new(match rsml::Texture::from_bytes(
+            context.renderer,
+            include_bytes!("./test_image.png"),
+            Some("test texture")
+        ) {
+            Ok(texture) => texture,
+            Err(_err) => { return; }
+        });
+
         self.scene = Some(MainScene {
-            triangle: rsml::Shape::create_triangle(context.renderer)
+            triangle: rsml::Shape::create_triangle(context.renderer),
+            sprite:   rsml::Sprite::new(context.renderer, texture)
         });
     }
 
@@ -51,7 +66,8 @@ impl rsml::Window for MainWindow {
 
         let Some(scene) = &self.scene else { return; };
 
-        render_target.draw(&scene.triangle);
+        scene.triangle.draw(render_target);
+        scene.sprite.draw(render_target);
     }
 
     fn event(&mut self, event: winit::event::WindowEvent) {
@@ -95,7 +111,7 @@ impl rsml::Window for SecondaryWindow {
 
         let Some(scene) = &self.scene else { return; };
 
-        render_target.draw(&scene.square);
+        scene.square.draw(render_target);
     }
 
     fn event(&mut self, event: winit::event::WindowEvent) {

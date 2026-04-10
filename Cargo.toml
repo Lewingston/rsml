@@ -9,3 +9,8 @@ wgpu = "29.0.1"
 winit = { version = "0.30" }
 pollster = "0.4"
 bytemuck = "1.25.0"
+
+[dependencies.image]
+version = "0.25.10"
+default-features = false
+features = ["png", "jpeg"]
