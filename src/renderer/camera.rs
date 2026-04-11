@@ -2,12 +2,14 @@
 use wgpu::util::DeviceExt;
 
 
+#[derive(Clone)]
 pub struct CameraParameters {
 
     pub pos:    cgmath::Point3<f32>,
     pub target: cgmath::Point3<f32>,
     pub up:     cgmath::Vector3<f32>,
-    pub aspect: f32,
+    pub width:  u32,
+    pub height: u32,
     pub fovy:   f32,
     pub znear:  f32,
     pub zfar:   f32,
@@ -17,7 +19,7 @@ pub struct CameraParameters {
 pub struct Camera {
 
     parameters: CameraParameters,
-    _buffer:    wgpu::Buffer,
+    buffer:     wgpu::Buffer,
     bind_group: wgpu::BindGroup
 }
 
@@ -41,9 +43,16 @@ impl Camera {
 
 
     #[must_use]
-    pub fn new(device: &wgpu::Device, aspect_ratio: f32) -> Self {
+    pub fn get_parameters(&self) -> &CameraParameters {
 
-        let parameters = CameraParameters::default(aspect_ratio);
+        &self.parameters
+    }
+
+
+    #[must_use]
+    pub fn new(device: &wgpu::Device, width: u32, height: u32) -> Self {
+
+        let parameters = CameraParameters::default(width, height);
 
         let buffer = Self::create_buffer(device, &parameters);
 
@@ -51,14 +60,26 @@ impl Camera {
 
         Self {
             parameters,
-            _buffer : buffer,
+            buffer,
             bind_group,
         }
     }
 
 
+    pub fn set_parameters(&mut self, parameters: CameraParameters) {
+
+        self.parameters = parameters;
+    }
+
+
+    pub fn update(&self, queue: &wgpu::Queue) {
+
+        queue.write_buffer(&self.buffer, 0, bytemuck::cast_slice(&[self.parameters.get_camera_matrix()]));
+    }
+
+
     #[must_use]
-    pub fn create_buffer(device: &wgpu::Device, parameters: &CameraParameters) -> wgpu::Buffer {
+    fn create_buffer(device: &wgpu::Device, parameters: &CameraParameters) -> wgpu::Buffer {
 
         device.create_buffer_init(
             &wgpu::util::BufferInitDescriptor {
@@ -71,7 +92,7 @@ impl Camera {
 
 
     #[must_use]
-    pub fn create_bind_group(
+    fn create_bind_group(
         device: &wgpu::Device,
         buffer: &wgpu::Buffer)
     -> wgpu::BindGroup {
@@ -135,13 +156,14 @@ impl CameraParameters {
 
 
     #[must_use]
-    pub fn default(aspect_ratio: f32) -> Self {
+    pub fn default(width: u32, height: u32) -> Self {
 
         Self {
             pos:    (0.0, 0.0, 2.0).into(),
             target: (0.0, 0.0, 0.0).into(),
             up:     cgmath::Vector3::unit_y(),
-            aspect: aspect_ratio,
+            width,
+            height,
             fovy:   45.0,
             znear:  0.01,
             zfar:   100.0,
@@ -151,8 +173,20 @@ impl CameraParameters {
 
     fn get_camera_matrix(&self) -> CameraUniform {
 
+        let aspect = self.width as f32 / self.height as f32;
+
         let view   = cgmath::Matrix4::look_at_rh(self.pos, self.target, self.up);
-        let proj   = cgmath::perspective(cgmath::Deg(self.fovy), self.aspect, self.znear, self.zfar);
+
+        let proj   = cgmath::perspective(cgmath::Deg(self.fovy), aspect, self.znear, self.zfar);
+
+        /*
+        let proj = cgmath::ortho(
+            self.width as f32 / -2.0,
+            self.width as f32 / 2.0,
+            self.height as f32 / 2.0,
+            self.height as f32 / -2.0, self.znear, self.zfar);
+        */
+
         let matrix = OPENGL_TO_WGPU_MATRIX * proj * view;
 
         CameraUniform::from_matrix(matrix)

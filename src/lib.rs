@@ -11,6 +11,7 @@ mod window;
 
 pub use window::Window;
 pub use window::WindowContext;
+pub use window::camera_controller::CameraController;
 
 pub mod drawable;
 

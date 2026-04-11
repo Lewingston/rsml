@@ -11,6 +11,7 @@ use crate::renderer::camera::Camera;
 
 use std::sync::Arc;
 use std::rc::Rc;
+use std::cell::RefCell;
 
 
 pub trait Window {
@@ -19,7 +20,7 @@ pub trait Window {
 
     fn draw(&mut self, render_target: &mut RenderTarget);
 
-    fn event(&mut self, event: WindowEvent);
+    fn event(&mut self, event: WindowEvent, window_context: WindowContext);
 }
 
 
@@ -29,15 +30,16 @@ pub struct WindowHandler {
     winit_window:    Arc<WinitWindow>,
     surface:         wgpu::Surface<'static>,
     surface_config:  wgpu::SurfaceConfiguration,
-    camera:          Rc<Camera>
+    camera:          Rc<RefCell<Camera>>
 }
 
 
-pub struct WindowContext<'a, 'b, 'c> {
+pub struct WindowContext<'renderer, 'window_handler> {
 
-    pub renderer:       &'a Renderer,
-    pub surface:        &'b wgpu::Surface<'static>,
-    pub surface_config: &'c wgpu::SurfaceConfiguration
+    pub renderer:       &'renderer Renderer,
+    pub surface:        &'window_handler wgpu::Surface<'static>,
+    pub surface_config: &'window_handler wgpu::SurfaceConfiguration,
+    pub camera:         &'window_handler Rc<RefCell<Camera>>
 }
 
 
@@ -56,7 +58,15 @@ impl WindowHandler {
 
         let surface_config = create_surface_config(&winit_window, &surface, renderer);
 
-        let camera = Rc::new(Camera::new(renderer.get_device(), surface_config.width as f32 / surface_config.height as f32));
+        let camera = Rc::new(
+            RefCell::new(
+                Camera::new(
+                    renderer.get_device(),
+                    surface_config.width,
+                    surface_config.height
+                )
+            )
+        );
 
         let mut window_handler = Self {
             window: Box::new(window),
@@ -83,7 +93,15 @@ impl WindowHandler {
 
         let surface_config = create_surface_config(&winit_window, &surface, &renderer);
 
-        let camera = Rc::new(Camera::new(renderer.get_device(), surface_config.width as f32 / surface_config.height as f32));
+        let camera = Rc::new(
+            RefCell::new(
+                Camera::new(
+                    renderer.get_device(),
+                    surface_config.width,
+                    surface_config.height
+                )
+            )
+        );
 
         let mut window_handler = Self {
             window: Box::new(window),
@@ -103,13 +121,27 @@ impl WindowHandler {
 
         let context = WindowContext {
             renderer,
-            surface: &self.surface,
-            surface_config: &self.surface_config
+            surface:        &self.surface,
+            surface_config: &self.surface_config,
+            camera:         &self.camera
         };
 
         self.window.start(context);
 
         self.winit_window.set_visible(true);
+    }
+
+
+    pub fn event(&mut self, event: winit::event::WindowEvent, renderer: &Renderer) {
+
+        let context = WindowContext {
+            renderer,
+            surface:        &self.surface,
+            surface_config: &self.surface_config,
+            camera:         &self.camera
+        };
+
+        self.window.event(event, context);
     }
 
 
@@ -126,6 +158,8 @@ impl WindowHandler {
 
 
     pub fn draw(&mut self, renderer: &Renderer) {
+
+        self.winit_window.request_redraw();
 
         let output = match self.surface.get_current_texture() {
 

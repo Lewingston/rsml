@@ -70,6 +70,16 @@ impl WindowManager {
     }
 
 
+    pub fn window_event(&mut self, window_id: WindowId, event: winit::event::WindowEvent) {
+
+        let Some(window) = self.window_map.get_mut(&window_id) else { return; };
+
+        let Some(renderer) = self.renderer.as_ref() else { return; };
+
+        window.event(event, renderer);
+    }
+
+
     pub fn get_window(&mut self, window_id: WindowId) -> Option<&mut WindowHandler> {
 
         self.window_map.get_mut(&window_id)

@@ -1,5 +1,6 @@
 
 use rsml::drawable::drawable::Drawable;
+//use rsml::window::camera_controller::CameraController;
 
 use std::rc::Rc;
 
@@ -14,7 +15,7 @@ impl rsml::App for MyApp {
         println!("APP STARTED!");
 
         _ = context.create_window(MainWindow::new());
-        _ = context.create_window(SecondaryWindow::new());
+        //_ = context.create_window(SecondaryWindow::new());
     }
 }
 
@@ -22,7 +23,9 @@ impl rsml::App for MyApp {
 struct MainScene {
 
     pub triangle: rsml::Shape,
-    pub sprite:   rsml::Sprite
+    pub sprite:   rsml::Sprite,
+
+    pub camera_control: rsml::CameraController
 }
 
 
@@ -58,7 +61,8 @@ impl rsml::Window for MainWindow {
 
         self.scene = Some(MainScene {
             triangle: rsml::Shape::create_triangle(context.renderer),
-            sprite:   rsml::Sprite::new(context.renderer, texture)
+            sprite:   rsml::Sprite::new(context.renderer, texture),
+            camera_control: rsml::CameraController::new(context.camera.clone())
         });
     }
 
@@ -70,9 +74,30 @@ impl rsml::Window for MainWindow {
         scene.sprite.draw(render_target);
     }
 
-    fn event(&mut self, event: winit::event::WindowEvent) {
+    fn event(&mut self, event: winit::event::WindowEvent, context: rsml::WindowContext) {
 
-        println!("MainWindow event: {event:?}");
+        //println!("MainWindow event: {event:?}");
+
+        match event {
+            winit::event::WindowEvent::KeyboardInput {
+                event: winit::event::KeyEvent {
+                    physical_key: winit::keyboard::PhysicalKey::Code(code),
+                    state: key_state,
+                    ..
+                },
+                ..
+            } => {
+
+                let Some(scene) = &mut self.scene else { return; };
+
+                let camera_moved = scene.camera_control.keyboard_input(code, key_state.is_pressed());
+
+                if camera_moved {
+                    scene.camera_control.update_camera(context.renderer.get_queue());
+                }
+            }
+            _ => {}
+        }
     }
 }
 
@@ -104,6 +129,7 @@ impl rsml::Window for SecondaryWindow {
 
         self.scene = Some(SecondaryScene {
             square: rsml::Shape::create_rectangle(context.renderer, 0.5, 0.5)
+            //square: rsml::Shape::create_rectangle(context.renderer, 100.0, 100.0)
         });
     }
 
@@ -114,7 +140,7 @@ impl rsml::Window for SecondaryWindow {
         scene.square.draw(render_target);
     }
 
-    fn event(&mut self, event: winit::event::WindowEvent) {
+    fn event(&mut self, event: winit::event::WindowEvent, _context: rsml::WindowContext) {
 
         println!("SecondaryWindow event: {event:?}");
     }

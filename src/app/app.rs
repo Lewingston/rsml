@@ -84,21 +84,26 @@ impl<T: App + 'static> ApplicationHandler<AppHandler<T>> for AppHandler<T> {
 
                 self.window_manager.resize_window(window_id, size.width, size.height);
 
-                let Some(window) = self.get_window(window_id) else { return; };
+                //let Some(window) = self.get_window(window_id) else { return; };
 
-                window.get_window().event(event);
+                //window.get_window().event(event);
+                //window.event(event, self.window_manager.get_renderer());
+                self.window_manager.window_event(window_id, event);
             }
             _ => {
 
-                let Some(window) = self.get_window(window_id) else { return; };
+                self.window_manager.window_event(window_id, event);
+                //let Some(window) = self.get_window(window_id) else { return; };
 
-                window.get_window().event(event);
+                //window.get_window().event(event);
+                //window.event(event);
             }
         }
     }
 }
 
 
+/*
 impl<T: App> AppHandler<T> {
 
     fn get_window(&mut self, window_id: winit::window::WindowId) -> Option<&mut WindowHandler> {
@@ -106,6 +111,7 @@ impl<T: App> AppHandler<T> {
         self.window_manager.get_window(window_id)
     }
 }
+*/
 
 
 pub struct AppContext<'a, 'b> {
