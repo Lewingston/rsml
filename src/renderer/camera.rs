@@ -1,4 +1,6 @@
 
+use crate::renderer::uniform::MatrixUniform;
+
 use wgpu::util::DeviceExt;
 
 
@@ -19,8 +21,7 @@ pub struct CameraParameters {
 pub struct Camera {
 
     parameters: CameraParameters,
-    buffer:     wgpu::Buffer,
-    bind_group: wgpu::BindGroup
+    uniform:    MatrixUniform
 }
 
 
@@ -38,7 +39,7 @@ impl Camera {
     #[must_use]
     pub fn get_bind_group(&self) -> &wgpu::BindGroup {
 
-        &self.bind_group
+        &self.uniform.get_bind_group()
     }
 
 
@@ -54,14 +55,11 @@ impl Camera {
 
         let parameters = CameraParameters::default(width, height);
 
-        let buffer = Self::create_buffer(device, &parameters);
-
-        let bind_group = Self::create_bind_group(device, &buffer);
+        let uniform = MatrixUniform::new(device, parameters.get_matrix());
 
         Self {
             parameters,
-            buffer,
-            bind_group,
+            uniform
         }
     }
 
@@ -74,80 +72,7 @@ impl Camera {
 
     pub fn update(&self, queue: &wgpu::Queue) {
 
-        queue.write_buffer(&self.buffer, 0, bytemuck::cast_slice(&[self.parameters.get_camera_matrix()]));
-    }
-
-
-    #[must_use]
-    fn create_buffer(device: &wgpu::Device, parameters: &CameraParameters) -> wgpu::Buffer {
-
-        device.create_buffer_init(
-            &wgpu::util::BufferInitDescriptor {
-                label: Some("Camera buffer"),
-                contents: bytemuck::cast_slice(&[parameters.get_camera_matrix()]),
-                usage: wgpu::BufferUsages::UNIFORM | wgpu::BufferUsages::COPY_DST
-            }
-        )
-    }
-
-
-    #[must_use]
-    fn create_bind_group(
-        device: &wgpu::Device,
-        buffer: &wgpu::Buffer)
-    -> wgpu::BindGroup {
-
-        let layout = device.create_bind_group_layout(
-            &wgpu::BindGroupLayoutDescriptor {
-                entries: &[
-                    wgpu::BindGroupLayoutEntry {
-                        binding: 0,
-                        visibility: wgpu::ShaderStages::VERTEX,
-                        ty: wgpu::BindingType::Buffer {
-                            ty:                 wgpu::BufferBindingType::Uniform,
-                            has_dynamic_offset: false,
-                            min_binding_size:   None,
-                        },
-                        count: None
-                    }
-                ],
-                label: Some("Camera bind group layout")
-            }
-        );
-
-        device.create_bind_group(&wgpu::BindGroupDescriptor {
-            layout: &layout,
-            entries: &[
-                wgpu::BindGroupEntry {
-                    binding: 0,
-                    resource: buffer.as_entire_binding(),
-                }
-            ],
-            label: Some("Camera bind group")
-        })
-    }
-
-
-    #[must_use]
-    pub fn get_bind_group_layout(device: &wgpu::Device) -> wgpu::BindGroupLayout {
-
-        device.create_bind_group_layout(
-            &wgpu::BindGroupLayoutDescriptor {
-                entries: &[
-                    wgpu::BindGroupLayoutEntry {
-                        binding: 0,
-                        visibility: wgpu::ShaderStages::VERTEX,
-                        ty: wgpu::BindingType::Buffer {
-                            ty:                 wgpu::BufferBindingType::Uniform,
-                            has_dynamic_offset: false,
-                            min_binding_size:   None,
-                        },
-                        count: None
-                    }
-                ],
-                label: Some("Camera bind group layout")
-            }
-        )
+        self.uniform.update(queue, self.parameters.get_matrix());
     }
 }
 
@@ -171,7 +96,7 @@ impl CameraParameters {
     }
 
 
-    fn get_camera_matrix(&self) -> CameraUniform {
+    fn get_matrix(&self) -> cgmath::Matrix4<f32> {
 
         let aspect = self.width as f32 / self.height as f32;
 
@@ -187,26 +112,6 @@ impl CameraParameters {
             self.height as f32 / -2.0, self.znear, self.zfar);
         */
 
-        let matrix = OPENGL_TO_WGPU_MATRIX * proj * view;
-
-        CameraUniform::from_matrix(matrix)
-    }
-}
-
-
-#[repr(C)]
-#[derive(Debug, Copy, Clone, bytemuck::Pod, bytemuck::Zeroable)]
-struct CameraUniform {
-    view_proj_matrix: [[f32; 4]; 4]
-}
-
-
-impl CameraUniform {
-
-    fn from_matrix(matrix: cgmath::Matrix4<f32>) -> Self {
-
-        Self {
-            view_proj_matrix: matrix.into()
-        }
+        OPENGL_TO_WGPU_MATRIX * proj * view
     }
 }

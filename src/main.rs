@@ -1,6 +1,5 @@
 
 use rsml::drawable::drawable::Drawable;
-//use rsml::window::camera_controller::CameraController;
 
 use std::rc::Rc;
 
@@ -56,12 +55,12 @@ impl rsml::Window for MainWindow {
             Some("test texture")
         ) {
             Ok(texture) => texture,
-            Err(_err) => { return; }
+            Err(_err)   => { return; }
         });
 
         self.scene = Some(MainScene {
-            triangle: rsml::Shape::create_triangle(context.renderer),
-            sprite:   rsml::Shape::create_sprite(context.renderer, 2.0, 2.0, texture),
+            triangle:       rsml::Shape::create_triangle(context.renderer),
+            sprite:         rsml::Shape::create_sprite(context.renderer, 2.0, 2.0, texture),
             camera_control: rsml::CameraController::new(context.camera.clone())
         });
     }
@@ -77,29 +76,6 @@ impl rsml::Window for MainWindow {
     fn event(&mut self, event: winit::event::WindowEvent, context: rsml::WindowContext) {
 
         //println!("MainWindow event: {event:?}");
-
-        /*
-        match event {
-            winit::event::WindowEvent::KeyboardInput {
-                event: winit::event::KeyEvent {
-                    physical_key: winit::keyboard::PhysicalKey::Code(code),
-                    state: key_state,
-                    ..
-                },
-                ..
-            } => {
-
-                let Some(scene) = &mut self.scene else { return; };
-
-                let camera_moved = scene.camera_control.keyboard_input(code, key_state.is_pressed());
-
-                if camera_moved {
-                    scene.camera_control.update_camera(context.renderer.get_queue());
-                }
-            }
-            _ => {}
-        }
-        */
 
         if let winit::event::WindowEvent::KeyboardInput {
             event: winit::event::KeyEvent {

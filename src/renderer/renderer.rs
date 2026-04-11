@@ -6,7 +6,7 @@ use crate::error::Error;
 use crate::drawable::drawable::Vertex;
 use crate::drawable::texture::Texture;
 
-use crate::renderer::camera::Camera;
+use crate::renderer::uniform::MatrixUniform;
 
 use std::sync::Arc;
 use std::rc::Rc;
@@ -245,12 +245,15 @@ fn create_default_color_render_pipeline(
 
     let vertex_buffer_layout = Vertex::get_layout();
 
-    let camera_layout = Camera::get_bind_group_layout(device);
+    let matrix_layout = MatrixUniform::get_bind_group_layout(device);
 
     let pipeline_layout =
         device.create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {
             label:              Some("Color pipeline layout descriptor"),
-            bind_group_layouts: &[Some(&camera_layout)],
+            bind_group_layouts: &[
+                Some(&matrix_layout), // Transformation matrix
+                Some(&matrix_layout)  // Camera matrix
+            ],
             immediate_size:     0
         });
 
@@ -275,14 +278,18 @@ fn create_default_texture_render_pipeline(
 
     let vertex_buffer_layout = Vertex::get_layout();
 
-    let texture_layout = Texture::get_default_bind_group_layout(device);
+    let matrix_layout = MatrixUniform::get_bind_group_layout(device);
 
-    let camera_layout = Camera::get_bind_group_layout(device);
+    let texture_layout = Texture::get_default_bind_group_layout(device);
 
     let pipeline_layout =
         device.create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {
             label: Some("Texture pipeline layout descriptor"),
-            bind_group_layouts: &[Some(&camera_layout), Some(&texture_layout)],
+            bind_group_layouts: &[
+                Some(&matrix_layout),  // Transformation matrix
+                Some(&matrix_layout),  // Camera matrix
+                Some(&texture_layout)  // Texture
+            ],
             immediate_size: 0
         });
 

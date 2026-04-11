@@ -1,10 +1,13 @@
 
 use wgpu::util::DeviceExt;
+use cgmath::SquareMatrix;
 
 use std::rc::Rc;
 
 use crate::renderer::Renderer;
 use crate::renderer::render_target::RenderTarget;
+use crate::renderer::uniform::MatrixUniform;
+
 use crate::drawable::texture::Texture;
 
 
@@ -66,6 +69,8 @@ impl Vertex {
 
 pub struct Shape {
 
+    transform: Transform,
+
     vertex_buffer: wgpu::Buffer,
     index_buffer:  wgpu::Buffer,
 
@@ -79,7 +84,22 @@ pub struct Shape {
 }
 
 
+pub struct Transform {
+
+    matrix:  cgmath::Matrix4<f32>,
+    uniform: MatrixUniform
+}
+
+
 impl Shape {
+
+
+    #[must_use]
+    pub fn get_transform(&mut self) -> &mut Transform {
+
+        &mut self.transform
+    }
+
 
     #[must_use]
     pub fn create_triangle(renderer: &Renderer) -> Self {
@@ -97,6 +117,7 @@ impl Shape {
         ];
 
         Self {
+            transform:          Transform::new(renderer.get_device()),
             vertex_buffer:      Self::create_vertex_buffer(renderer.get_device(), &vertices),
             index_buffer:       Self::create_index_buffer(renderer.get_device(), indices),
             _vertices:          vertices,
@@ -127,6 +148,7 @@ impl Shape {
         ];
 
         Self {
+            transform:          Transform::new(renderer.get_device()),
             vertex_buffer:      Self::create_vertex_buffer(renderer.get_device(), &vertices),
             index_buffer:       Self::create_index_buffer(renderer.get_device(), indices),
             _vertices:          vertices,
@@ -141,9 +163,9 @@ impl Shape {
     #[must_use]
     pub fn create_sprite(
         renderer: &Renderer,
-        width: f32,
-        height: f32,
-        texture: Rc<Texture>
+        width:    f32,
+        height:   f32,
+        texture:  Rc<Texture>
     ) -> Self {
 
         let color = Color{ r: 255, g: 255, b: 255, a: 255 };
@@ -167,6 +189,7 @@ impl Shape {
         );
 
         Self {
+            transform:          Transform::new(renderer.get_device()),
             vertex_buffer:      Self::create_vertex_buffer(renderer.get_device(), &vertices),
             index_buffer:       Self::create_index_buffer(renderer.get_device(), indices),
             _vertices:          vertices,
@@ -213,11 +236,11 @@ impl Shape {
                 layout: &Texture::get_default_bind_group_layout(device),
                 entries: &[
                     wgpu::BindGroupEntry {
-                        binding: 0,
+                        binding:  0,
                         resource: wgpu::BindingResource::TextureView(texture_view)
                     },
                     wgpu::BindGroupEntry {
-                        binding: 1,
+                        binding:  1,
                         resource: wgpu::BindingResource::Sampler(texture_sampler)
                     }
                 ],
@@ -228,19 +251,84 @@ impl Shape {
 }
 
 
+impl Transform {
+
+
+    pub fn new(device: &wgpu::Device) -> Self {
+
+        let matrix  = cgmath::Matrix4::<f32>::identity();
+        let uniform = MatrixUniform::new(device, matrix);
+
+        Self {
+            matrix,
+            uniform
+        }
+    }
+
+
+    pub fn get_bind_group(&self) -> &wgpu::BindGroup {
+
+        self.uniform.get_bind_group()
+    }
+
+
+    pub fn translate(&mut self, v: cgmath::Vector3<f32>) {
+
+        self.matrix =
+            cgmath::Matrix4::<f32>::from_translation(v) * self.matrix;
+    }
+
+
+    pub fn rotate_x(&mut self, angle: cgmath::Rad<f32>) {
+
+        self.matrix =
+            self.matrix * cgmath::Matrix4::<f32>::from_angle_x(angle);
+    }
+
+
+    pub fn rotate_y(&mut self, angle: cgmath::Rad<f32>) {
+
+        self.matrix =
+            self.matrix * cgmath::Matrix4::<f32>::from_angle_y(angle);
+    }
+
+
+    pub fn rotate_z(&mut self, angle: cgmath::Rad<f32>) {
+
+        self.matrix =
+            self.matrix * cgmath::Matrix4::<f32>::from_angle_z(angle);
+    }
+
+
+    pub fn scale(&mut self, v: cgmath::Vector3<f32>) {
+
+        self.matrix =
+            self.matrix * cgmath::Matrix4::<f32>::from_nonuniform_scale(v.x, v.y, v.z);
+    }
+
+
+    pub fn update(&self, queue: &wgpu::Queue) {
+
+        self.uniform.update(queue, self.matrix);
+    }
+}
+
+
 impl Drawable for Shape {
 
     fn draw(&self, render_target: &mut RenderTarget) {
 
         let camera = render_target.get_camera();
 
-        let pass : &mut wgpu::RenderPass  = render_target.get_render_pass();
+        let pass : &mut wgpu::RenderPass = render_target.get_render_pass();
 
         pass.set_pipeline(self.render_pipeline.as_ref());
 
-        pass.set_bind_group(0, camera.borrow().get_bind_group(), &[]);
+        pass.set_bind_group(0, self.transform.get_bind_group(), &[]);
 
-        pass.set_bind_group(1, &self.texture_bind_group, &[]);
+        pass.set_bind_group(1, camera.borrow().get_bind_group(), &[]);
+
+        pass.set_bind_group(2, &self.texture_bind_group, &[]);
 
         pass.set_vertex_buffer(0, self.vertex_buffer.slice(..));
 
