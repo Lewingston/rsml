@@ -223,11 +223,6 @@ impl WindowHandler {
     }
 
 
-    pub fn get_window(&mut self) -> &mut Box<dyn Window> {
-        &mut self.window
-    }
-
-
     pub fn get_window_id(&self) -> winit::window::WindowId {
         self.winit_window.id()
     }

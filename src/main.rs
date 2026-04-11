@@ -15,7 +15,7 @@ impl rsml::App for MyApp {
         println!("APP STARTED!");
 
         _ = context.create_window(MainWindow::new());
-        //_ = context.create_window(SecondaryWindow::new());
+        _ = context.create_window(SecondaryWindow::new());
     }
 }
 
@@ -23,7 +23,7 @@ impl rsml::App for MyApp {
 struct MainScene {
 
     pub triangle: rsml::Shape,
-    pub sprite:   rsml::Sprite,
+    pub sprite:   rsml::Shape,
 
     pub camera_control: rsml::CameraController
 }
@@ -61,7 +61,7 @@ impl rsml::Window for MainWindow {
 
         self.scene = Some(MainScene {
             triangle: rsml::Shape::create_triangle(context.renderer),
-            sprite:   rsml::Sprite::new(context.renderer, texture),
+            sprite:   rsml::Shape::create_sprite(context.renderer, 2.0, 2.0, texture),
             camera_control: rsml::CameraController::new(context.camera.clone())
         });
     }
@@ -78,6 +78,7 @@ impl rsml::Window for MainWindow {
 
         //println!("MainWindow event: {event:?}");
 
+        /*
         match event {
             winit::event::WindowEvent::KeyboardInput {
                 event: winit::event::KeyEvent {
@@ -97,6 +98,25 @@ impl rsml::Window for MainWindow {
                 }
             }
             _ => {}
+        }
+        */
+
+        if let winit::event::WindowEvent::KeyboardInput {
+            event: winit::event::KeyEvent {
+                physical_key: winit::keyboard::PhysicalKey::Code(code),
+                state: key_state,
+                ..
+            },
+            ..
+        } = event {
+
+            let Some(scene) = &mut self.scene else { return; };
+
+            let camera_moved = scene.camera_control.keyboard_input(code, key_state.is_pressed());
+
+            if camera_moved {
+                scene.camera_control.update_camera(context.renderer.get_queue());
+            }
         }
     }
 }

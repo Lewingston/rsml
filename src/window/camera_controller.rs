@@ -37,12 +37,14 @@ impl CameraController {
 
     pub fn keyboard_input(&mut self, key_code: winit::keyboard::KeyCode, is_pressed: bool) -> bool {
 
+        use winit::keyboard::KeyCode as KeyCode;
+        use cgmath::EuclideanSpace;
+
         if !is_pressed {
             return false;
         }
 
-        use winit::keyboard::KeyCode as KeyCode;
-        use cgmath::EuclideanSpace;
+        const POLAR_DEAD_SCONE: f32 = 0.01;
 
         let mut param = self.camera.borrow().get_parameters().clone();
         let mut pos = SphericalPos::from_pos(param.pos - param.target);
@@ -50,11 +52,11 @@ impl CameraController {
         match key_code {
             KeyCode::KeyW | KeyCode::ArrowUp => {
 
-                pos.altitude = f32::max(pos.altitude - self.rotation_speed, 0.0);
+                pos.altitude = f32::max(pos.altitude - self.rotation_speed, POLAR_DEAD_SCONE);
             }
             KeyCode::KeyS | KeyCode::ArrowDown => {
 
-                pos.altitude = f32::min(pos.altitude + self.rotation_speed, std::f32::consts::PI - 0.01);
+                pos.altitude = f32::min(pos.altitude + self.rotation_speed, std::f32::consts::PI - POLAR_DEAD_SCONE);
             }
             KeyCode::KeyA | KeyCode::ArrowLeft => {
 

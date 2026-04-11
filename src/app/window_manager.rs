@@ -80,12 +80,6 @@ impl WindowManager {
     }
 
 
-    pub fn get_window(&mut self, window_id: WindowId) -> Option<&mut WindowHandler> {
-
-        self.window_map.get_mut(&window_id)
-    }
-
-
     pub fn close_window(&mut self, window_id: WindowId) {
 
         self.window_map.remove(&window_id);

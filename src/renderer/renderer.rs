@@ -3,8 +3,7 @@ use winit::window::Window as WinitWindow;
 
 use crate::error::Error;
 
-use crate::drawable::drawable::ColorVertex;
-use crate::drawable::drawable::TextureVertex;
+use crate::drawable::drawable::Vertex;
 use crate::drawable::texture::Texture;
 
 use crate::renderer::camera::Camera;
@@ -244,7 +243,7 @@ fn create_default_color_render_pipeline(
         source: wgpu::ShaderSource::Wgsl(include_str!("default_color_shader.wgsl").into())
     });
 
-    let vertex_buffer_layout = ColorVertex::get_layout();
+    let vertex_buffer_layout = Vertex::get_layout();
 
     let camera_layout = Camera::get_bind_group_layout(device);
 
@@ -274,7 +273,7 @@ fn create_default_texture_render_pipeline(
         source: wgpu::ShaderSource::Wgsl(include_str!("default_texture_shader.wgsl").into())
     });
 
-    let vertex_buffer_layout = TextureVertex::get_layout();
+    let vertex_buffer_layout = Vertex::get_layout();
 
     let texture_layout = Texture::get_default_bind_group_layout(device);
 
@@ -283,7 +282,7 @@ fn create_default_texture_render_pipeline(
     let pipeline_layout =
         device.create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {
             label: Some("Texture pipeline layout descriptor"),
-            bind_group_layouts: &[Some(&texture_layout), Some(&camera_layout)],
+            bind_group_layouts: &[Some(&camera_layout), Some(&texture_layout)],
             immediate_size: 0
         });
 

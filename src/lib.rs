@@ -16,10 +16,8 @@ pub use window::camera_controller::CameraController;
 pub mod drawable;
 
 pub use drawable::vertex_buffer::VertexBuffer;
-pub use drawable::drawable::TextureVertex;
-pub use drawable::drawable::ColorVertex;
+pub use drawable::drawable::Vertex;
 pub use drawable::drawable::Shape;
-pub use drawable::drawable::Sprite;
 pub use drawable::texture::Texture;
 
 pub mod renderer;
