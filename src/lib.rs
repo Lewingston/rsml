@@ -25,5 +25,6 @@ pub mod renderer;
 
 pub use renderer::render_target::RenderTarget;
 pub use renderer::renderer::Renderer;
+pub use renderer::camera::Camera;
 
 mod error;
