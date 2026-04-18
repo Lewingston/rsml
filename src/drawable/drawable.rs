@@ -102,7 +102,7 @@ pub struct Shape {
 
     render_pipeline: Rc<wgpu::RenderPipeline>,
 
-    _texture: Option<Rc<Texture>>,
+    texture: Option<Rc<Texture>>,
     texture_bind_group: Option<wgpu::BindGroup>
 }
 
@@ -139,7 +139,7 @@ impl Shape {
             vertices:           vertices,
             index_count:        indices.len(),
             render_pipeline:    renderer.get_default_color_render_pipeline(),
-            _texture:           None,
+            texture:            None,
             texture_bind_group: None
         }
     }
@@ -149,13 +149,12 @@ impl Shape {
     pub fn create_rectangle(renderer: &Renderer, width: f32, height: f32) -> Self {
 
         let color = Color{ r: 255, g: 0, b: 0, a: 255 };
-        let texture_pos = [0.0, 0.0];
 
         let vertices = vec![
-            Vertex { position: [-width / 2.0,  height / 2.0, 0.0], texture_pos, color },
-            Vertex { position: [ width / 2.0,  height / 2.0, 0.0], texture_pos, color },
-            Vertex { position: [ width / 2.0, -height / 2.0, 0.0], texture_pos, color },
-            Vertex { position: [-width / 2.0, -height / 2.0, 0.0], texture_pos, color }
+            Vertex { position: [-width / 2.0,  height / 2.0, 0.0], texture_pos: [0.0, 0.0], color },
+            Vertex { position: [ width / 2.0,  height / 2.0, 0.0], texture_pos: [1.0, 0.0], color },
+            Vertex { position: [ width / 2.0, -height / 2.0, 0.0], texture_pos: [1.0, 1.0], color },
+            Vertex { position: [-width / 2.0, -height / 2.0, 0.0], texture_pos: [0.0, 1.0], color }
         ];
 
         let indices: &[u16] = &[
@@ -170,7 +169,7 @@ impl Shape {
             vertices:           vertices,
             index_count:        indices.len(),
             render_pipeline:    renderer.get_default_color_render_pipeline(),
-            _texture:           None,
+            texture:            None,
             texture_bind_group: None
         }
     }
@@ -211,7 +210,7 @@ impl Shape {
             vertices:           vertices,
             index_count:        indices.len(),
             render_pipeline:    renderer.get_default_texture_render_pipeline(),
-            _texture:           Some(texture),
+            texture:            Some(texture),
             texture_bind_group: Some(texture_bind_group)
         }
     }
@@ -225,6 +224,18 @@ impl Shape {
         }
 
         self.vertex_buffer = Self::create_vertex_buffer(device, &self.vertices);
+    }
+
+
+    pub fn set_texture(&mut self, texture: Rc<Texture>, renderer: &Renderer) {
+
+        self.texture_bind_group = Some(Self::create_texture_bind_group(
+            renderer.get_device(),
+            texture.get_view(),
+            texture.get_sampler()
+        ));
+        self.texture = Some(texture);
+        self.render_pipeline = renderer.get_default_texture_render_pipeline();
     }
 
 
