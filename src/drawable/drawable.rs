@@ -27,6 +27,30 @@ pub struct Color {
 }
 
 
+impl Color {
+
+
+    #[must_use]
+    pub fn random() -> Self {
+
+        use rand::RngExt;
+
+        let mut rng = rand::rng();
+        let r : u8 = rng.random();
+        let g : u8 = rng.random();
+        let b : u8 = rng.random();
+        let a : u8 = 255;
+
+        Self {
+            r,
+            g,
+            b,
+            a
+        }
+    }
+}
+
+
 #[repr(C)]
 #[derive(Copy, Clone, Debug, bytemuck::Pod, bytemuck::Zeroable)]
 pub struct Vertex {

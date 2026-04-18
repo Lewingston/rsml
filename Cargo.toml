@@ -10,6 +10,7 @@ winit = { version = "0.30" }
 pollster = "0.4"
 bytemuck = "1.25.0"
 cgmath = "0.18"
+rand = "0.10.1"
 
 [dependencies.image]
 version = "0.25.10"
