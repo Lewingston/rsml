@@ -14,7 +14,6 @@ use crate::drawable::texture::Texture;
 pub trait Drawable {
 
     fn draw(&self, render_target: &mut RenderTarget);
-
 }
 
 
@@ -74,20 +73,13 @@ pub struct Shape {
     vertex_buffer: wgpu::Buffer,
     index_buffer:  wgpu::Buffer,
 
-    _vertices: Vec<Vertex>,
+    vertices: Vec<Vertex>,
     index_count: usize,
 
     render_pipeline: Rc<wgpu::RenderPipeline>,
 
     _texture: Option<Rc<Texture>>,
     texture_bind_group: Option<wgpu::BindGroup>
-}
-
-
-pub struct Transform {
-
-    matrix:  cgmath::Matrix4<f32>,
-    uniform: MatrixUniform
 }
 
 
@@ -120,7 +112,7 @@ impl Shape {
             transform:          Transform::new(renderer.get_device()),
             vertex_buffer:      Self::create_vertex_buffer(renderer.get_device(), &vertices),
             index_buffer:       Self::create_index_buffer(renderer.get_device(), indices),
-            _vertices:          vertices,
+            vertices:           vertices,
             index_count:        indices.len(),
             render_pipeline:    renderer.get_default_color_render_pipeline(),
             _texture:           None,
@@ -151,7 +143,7 @@ impl Shape {
             transform:          Transform::new(renderer.get_device()),
             vertex_buffer:      Self::create_vertex_buffer(renderer.get_device(), &vertices),
             index_buffer:       Self::create_index_buffer(renderer.get_device(), indices),
-            _vertices:          vertices,
+            vertices:           vertices,
             index_count:        indices.len(),
             render_pipeline:    renderer.get_default_color_render_pipeline(),
             _texture:           None,
@@ -192,12 +184,23 @@ impl Shape {
             transform:          Transform::new(renderer.get_device()),
             vertex_buffer:      Self::create_vertex_buffer(renderer.get_device(), &vertices),
             index_buffer:       Self::create_index_buffer(renderer.get_device(), indices),
-            _vertices:          vertices,
+            vertices:           vertices,
             index_count:        indices.len(),
             render_pipeline:    renderer.get_default_texture_render_pipeline(),
             _texture:           Some(texture),
             texture_bind_group: Some(texture_bind_group)
         }
+    }
+
+
+    pub fn set_color(&mut self, color: Color, device: &wgpu::Device) {
+
+        for vertex in &mut self.vertices {
+
+            vertex.color = color;
+        }
+
+        self.vertex_buffer = Self::create_vertex_buffer(device, &self.vertices);
     }
 
 
@@ -248,6 +251,13 @@ impl Shape {
             }
         )
     }
+}
+
+
+pub struct Transform {
+
+    matrix:  cgmath::Matrix4<f32>,
+    uniform: MatrixUniform
 }
 
 
