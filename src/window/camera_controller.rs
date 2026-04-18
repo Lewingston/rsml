@@ -1,5 +1,6 @@
 
 use crate::renderer::camera::Camera;
+use crate::renderer::camera::ProjectionMode;
 
 use std::rc::Rc;
 use std::cell::RefCell;
@@ -73,6 +74,19 @@ impl CameraController {
             KeyCode::Slash | KeyCode::ControlLeft => {
 
                 pos.r += self.zoom_speed;
+            }
+            KeyCode::KeyX => {
+
+                match param.projection {
+                    ProjectionMode::PERSPECTIVE => {
+
+                        param.projection = ProjectionMode::ORTHOGRAPHIC;
+                    }
+                    ProjectionMode::ORTHOGRAPHIC => {
+
+                        param.projection = ProjectionMode::PERSPECTIVE;
+                    }
+                };
             }
             _ => { return false; }
         }
