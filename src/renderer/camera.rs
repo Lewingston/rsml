@@ -91,7 +91,7 @@ impl CameraParameters {
     pub fn default(width: u32, height: u32) -> Self {
 
         Self {
-            pos:        (0.0, 0.0, 2.0).into(),
+            pos:        (0.0, 0.0, 10.0).into(),
             target:     (0.0, 0.0, 0.0).into(),
             up:         cgmath::Vector3::unit_y(),
             width,
