@@ -1,8 +1,6 @@
 
 use crate::renderer::uniform::MatrixUniform;
 
-use wgpu::util::DeviceExt;
-
 
 #[derive(Clone)]
 pub struct CameraParameters {
