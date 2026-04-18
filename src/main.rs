@@ -2,10 +2,13 @@
 use rsml::drawable::drawable::Drawable;
 
 use std::rc::Rc;
+use std::cell::RefCell;
+
 
 struct MyApp {
 
 }
+
 
 impl rsml::App for MyApp {
 
@@ -21,10 +24,24 @@ impl rsml::App for MyApp {
 
 struct MainScene {
 
-    pub triangle: rsml::Shape,
-    pub sprite:   rsml::Shape,
-
     pub camera_control: rsml::CameraController
+}
+
+
+impl MainScene {
+
+
+    pub fn new(
+        _renderer: &rsml::Renderer,
+        camera: &Rc<RefCell<rsml::Camera>>,
+    ) -> Self {
+
+            let camera_control = rsml::CameraController::new(camera.clone());
+
+            Self {
+                camera_control
+            }
+    }
 }
 
 
@@ -32,6 +49,7 @@ struct MainWindow {
 
     scene: Option<MainScene>
 }
+
 
 impl MainWindow {
 
@@ -43,39 +61,25 @@ impl MainWindow {
     }
 }
 
+
 impl rsml::Window for MainWindow {
+
 
     fn start(&mut self, context: rsml::WindowContext) {
 
         println!("MainWindow start");
 
-        let texture = Rc::new(match rsml::Texture::from_bytes(
-            context.renderer,
-            include_bytes!("./test_image.png"),
-            Some("test texture")
-        ) {
-            Ok(texture) => texture,
-            Err(_err)   => { return; }
-        });
-
-        self.scene = Some(MainScene {
-            triangle:       rsml::Shape::create_triangle(context.renderer),
-            sprite:         rsml::Shape::create_sprite(context.renderer, 2.0, 2.0, texture),
-            camera_control: rsml::CameraController::new(context.camera.clone())
-        });
+        self.scene = Some(MainScene::new(context.renderer, context.camera));
     }
 
-    fn draw(&mut self, render_target: &mut rsml::RenderTarget) {
 
-        let Some(scene) = &self.scene else { return; };
+    fn draw(&mut self, _render_target: &mut rsml::RenderTarget) {
 
-        scene.triangle.draw(render_target);
-        scene.sprite.draw(render_target);
+        //let Some(scene) = &self.scene else { return; };
     }
+
 
     fn event(&mut self, event: winit::event::WindowEvent, context: rsml::WindowContext) {
-
-        //println!("MainWindow event: {event:?}");
 
         if let winit::event::WindowEvent::KeyboardInput {
             event: winit::event::KeyEvent {
@@ -97,15 +101,18 @@ impl rsml::Window for MainWindow {
     }
 }
 
+
 struct SecondaryScene {
 
     pub square: rsml::Shape
 }
 
+
 struct SecondaryWindow {
 
     scene: Option<SecondaryScene>
 }
+
 
 impl SecondaryWindow {
 
@@ -116,6 +123,7 @@ impl SecondaryWindow {
         }
     }
 }
+
 
 impl rsml::Window for SecondaryWindow {
 
@@ -141,6 +149,7 @@ impl rsml::Window for SecondaryWindow {
         println!("SecondaryWindow event: {event:?}");
     }
 }
+
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
 
