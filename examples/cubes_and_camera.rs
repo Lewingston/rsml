@@ -22,60 +22,58 @@ struct MainScene {
 impl MainScene {
 
 
-    pub fn new(
-        renderer: &rsml::Renderer,
-        camera: &Rc<RefCell<rsml::Camera>>,
-    ) -> Self {
+    pub fn new(camera: &Rc<RefCell<rsml::Camera>>) -> Self {
 
-            let mut center_cube = Cube::new(renderer);
+        let renderer = rsml::Renderer::get();
+        let mut center_cube = Cube::new(renderer);
 
-            match rsml::Texture::from_bytes(
-                renderer,
-                include_bytes!("./test_image.png"),
-                Some("test texture")
-            ) {
-                Ok(texture) => {
-                    let t = Rc::new(texture);
-                    center_cube.faces[0].set_texture(t.clone(), renderer);
-                    center_cube.faces[1].set_texture(t.clone(), renderer);
-                    center_cube.faces[2].set_texture(t.clone(), renderer);
-                    center_cube.faces[3].set_texture(t.clone(), renderer);
-                    center_cube.faces[4].set_texture(t.clone(), renderer);
-                    center_cube.faces[5].set_texture(t.clone(), renderer);
-                },
-                Err(_err)   => { }
-            };
+        match rsml::Texture::from_bytes(
+            renderer,
+            include_bytes!("./test_image.png"),
+            Some("test texture")
+        ) {
+            Ok(texture) => {
+                let t = Rc::new(texture);
+                center_cube.faces[0].set_texture(t.clone(), renderer);
+                center_cube.faces[1].set_texture(t.clone(), renderer);
+                center_cube.faces[2].set_texture(t.clone(), renderer);
+                center_cube.faces[3].set_texture(t.clone(), renderer);
+                center_cube.faces[4].set_texture(t.clone(), renderer);
+                center_cube.faces[5].set_texture(t.clone(), renderer);
+            },
+            Err(_err)   => { }
+        };
 
-            let mut left_cube = Cube::new(renderer);
-            left_cube.move_x(-2.0, renderer.get_queue());
+        let mut left_cube = Cube::new(renderer);
+        left_cube.move_x(-2.0, renderer.get_queue());
 
-            let mut right_cube = Cube::new(renderer);
-            right_cube.move_x(2.0, renderer.get_queue());
+        let mut right_cube = Cube::new(renderer);
+        right_cube.move_x(2.0, renderer.get_queue());
 
-            let mut back_cube = Cube::new(renderer);
-            back_cube.move_z(-2.0, renderer.get_queue());
+        let mut back_cube = Cube::new(renderer);
+        back_cube.move_z(-2.0, renderer.get_queue());
 
-            let mut top_cube = Cube::new(renderer);
-            top_cube.move_y(2.0, renderer.get_queue());
+        let mut top_cube = Cube::new(renderer);
+        top_cube.move_y(2.0, renderer.get_queue());
 
-            let mut bottom_cube = Cube::new(renderer);
-            bottom_cube.move_y(-2.0, renderer.get_queue());
+        let mut bottom_cube = Cube::new(renderer);
+        bottom_cube.move_y(-2.0, renderer.get_queue());
 
-            let mut front_cube = Cube::new(renderer);
-            front_cube.move_z(2.0, renderer.get_queue());
+        let mut front_cube = Cube::new(renderer);
+        front_cube.move_z(2.0, renderer.get_queue());
 
-            let camera_control = rsml::CameraController::new(camera.clone());
+        let camera_control = rsml::CameraController::new(camera.clone());
 
-            Self {
-                center_cube,
-                left_cube,
-                right_cube,
-                back_cube,
-                top_cube,
-                bottom_cube,
-                front_cube,
-                camera_control
-            }
+        Self {
+            center_cube,
+            left_cube,
+            right_cube,
+            back_cube,
+            top_cube,
+            bottom_cube,
+            front_cube,
+            camera_control
+        }
     }
 
 
@@ -276,7 +274,7 @@ impl rsml::Window for MainWindow {
 
     fn start(&mut self, context: rsml::WindowContext) {
 
-        self.scene = Some(MainScene::new(context.renderer, context.camera));
+        self.scene = Some(MainScene::new(context.camera));
     }
 
 
@@ -294,7 +292,7 @@ impl rsml::Window for MainWindow {
     }
 
 
-    fn event(&mut self, event: winit::event::WindowEvent, context: rsml::WindowContext) {
+    fn event(&mut self, event: winit::event::WindowEvent, _context: rsml::WindowContext) {
 
         if let winit::event::WindowEvent::KeyboardInput {
             event: winit::event::KeyEvent {
@@ -312,7 +310,7 @@ impl rsml::Window for MainWindow {
             let camera_moved = scene.camera_control.keyboard_input(code, key_state.is_pressed());
 
             if camera_moved {
-                scene.camera_control.update_camera(context.renderer.get_queue());
+                scene.camera_control.update_camera();
             }
         }
     }

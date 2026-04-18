@@ -32,7 +32,6 @@ impl MainScene {
 
 
     pub fn new(
-        _renderer: &rsml::Renderer,
         camera: &Rc<RefCell<rsml::Camera>>,
     ) -> Self {
 
@@ -69,7 +68,7 @@ impl rsml::Window for MainWindow {
 
         println!("MainWindow start");
 
-        self.scene = Some(MainScene::new(context.renderer, context.camera));
+        self.scene = Some(MainScene::new(context.camera));
     }
 
 
@@ -95,7 +94,7 @@ impl rsml::Window for MainWindow {
             let camera_moved = scene.camera_control.keyboard_input(code, key_state.is_pressed());
 
             if camera_moved {
-                scene.camera_control.update_camera(context.renderer.get_queue());
+                scene.camera_control.update_camera();
             }
         }
     }
@@ -132,7 +131,7 @@ impl rsml::Window for SecondaryWindow {
         println!("SecondaryWindow start");
 
         self.scene = Some(SecondaryScene {
-            square: rsml::Shape::create_rectangle(context.renderer, 0.5, 0.5)
+            square: rsml::Shape::create_rectangle(rsml::Renderer::get(), 0.5, 0.5)
             //square: rsml::Shape::create_rectangle(context.renderer, 100.0, 100.0)
         });
     }

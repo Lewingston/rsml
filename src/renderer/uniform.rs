@@ -11,6 +11,8 @@ pub struct MatrixUniform {
 
 impl MatrixUniform {
 
+
+    #[must_use]
     pub fn new(device: &wgpu::Device, matrix: cgmath::Matrix4::<f32>) -> Self {
 
         let buffer     = Self::create_buffer(device, matrix);
@@ -29,6 +31,7 @@ impl MatrixUniform {
     }
 
 
+    #[must_use]
     pub fn get_bind_group(&self) -> &wgpu::BindGroup {
 
         &self.bind_group

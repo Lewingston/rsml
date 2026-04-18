@@ -9,7 +9,9 @@ use crate::drawable::texture::Texture;
 use crate::renderer::uniform::MatrixUniform;
 
 use std::sync::Arc;
-use std::rc::Rc;
+
+
+static RENDERER_INSTANCE: std::sync::OnceLock<Renderer> = std::sync::OnceLock::new();
 
 
 pub struct Renderer {
@@ -19,12 +21,26 @@ pub struct Renderer {
     device:        wgpu::Device,
     queue:         wgpu::Queue,
 
-    default_color_render_pipeline:   Rc<wgpu::RenderPipeline>,
-    default_texture_render_pipeline: Rc<wgpu::RenderPipeline>,
+    default_color_render_pipeline:   Arc<wgpu::RenderPipeline>,
+    default_texture_render_pipeline: Arc<wgpu::RenderPipeline>,
 }
 
 
 impl Renderer {
+
+
+    #[must_use]
+    pub fn get() -> &'static Renderer {
+
+        match RENDERER_INSTANCE.get() {
+            Some(renderer) => {
+                renderer
+            }
+            None => {
+                panic!("Renderer not initialized. Make sure a surface was created before accessing the renderer.");
+            }
+        }
+    }
 
 
     #[must_use]
@@ -36,14 +52,14 @@ impl Renderer {
 
 
     #[must_use]
-    pub fn get_default_color_render_pipeline(&self) -> Rc<wgpu::RenderPipeline> {
+    pub fn get_default_color_render_pipeline(&self) -> Arc<wgpu::RenderPipeline> {
 
         self.default_color_render_pipeline.clone()
     }
 
 
     #[must_use]
-    pub fn get_default_texture_render_pipeline(&self) -> Rc<wgpu::RenderPipeline> {
+    pub fn get_default_texture_render_pipeline(&self) -> Arc<wgpu::RenderPipeline> {
 
         self.default_texture_render_pipeline.clone()
     }
@@ -52,8 +68,25 @@ impl Renderer {
     /// # Errors
     ///
     /// Returns an error if surface creation fails.
-    pub async fn init_and_create_surface(window: Arc<WinitWindow>)
-        -> Result<(Self, wgpu::Surface<'static>), Error>
+    pub fn create_window_surface(window: Arc<WinitWindow>)
+        -> Result<wgpu::Surface<'static>, Error>
+    {
+        match RENDERER_INSTANCE.get() {
+            Some(renderer) => {
+                renderer.create_surface(window)
+            },
+            None => {
+                pollster::block_on(Renderer::init_and_create_window_surface(window))
+            }
+        }
+    }
+
+
+    /// # Errors
+    ///
+    /// Returns an error if surface creation fails.
+    async fn init_and_create_window_surface(window: Arc<WinitWindow>)
+        -> Result<wgpu::Surface<'static>, Error>
     {
 
         let wgpu_instance = Renderer::create_instance();
@@ -64,27 +97,31 @@ impl Renderer {
 
         let surface_config = get_surface_config(&surface, &wgpu_adapter);
 
-        let default_color_render_pipeline = Rc::new(
+        let default_color_render_pipeline = Arc::new(
             create_default_color_render_pipeline(&device, &surface_config));
 
-        let default_texture_render_pipeline = Rc::new(
+        let default_texture_render_pipeline = Arc::new(
             create_default_texture_render_pipeline(&device, &surface_config));
 
-        Ok((Self {
+        assert!(RENDERER_INSTANCE.get().is_none(), "Renderer is already initialized?");
+
+        _ = RENDERER_INSTANCE.get_or_init(|| Self {
             wgpu_instance,
             wgpu_adapter,
             device,
             queue,
             default_color_render_pipeline,
             default_texture_render_pipeline
-        }, surface))
+        });
+
+        Ok(surface)
     }
 
 
     /// # Errors
     ///
     /// Returns an error if surface creation fails.
-    pub fn create_surface(&self, window: Arc<WinitWindow>) -> Result<wgpu::Surface<'static>, Error> {
+    fn create_surface(&self, window: Arc<WinitWindow>) -> Result<wgpu::Surface<'static>, Error> {
 
         match self.wgpu_instance.create_surface(window) {
             Ok(surface) => Ok(surface),

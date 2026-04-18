@@ -1,6 +1,7 @@
 
 use crate::renderer::camera::Camera;
 use crate::renderer::camera::ProjectionMode;
+use crate::renderer::renderer::Renderer;
 
 use std::rc::Rc;
 use std::cell::RefCell;
@@ -92,7 +93,7 @@ impl CameraController {
                         param.width  = (param.width  as f32 * ORTHO_PROJ_ZOOM) as u32;
                         param.height = (param.height as f32 * ORTHO_PROJ_ZOOM) as u32;
                     }
-                };
+                }
             }
             _ => { return false; }
         }
@@ -103,9 +104,9 @@ impl CameraController {
     }
 
 
-    pub fn update_camera(&self, queue: &wgpu::Queue) {
+    pub fn update_camera(&self) {
 
-        self.camera.borrow().update(queue);
+        self.camera.borrow().update(Renderer::get().get_queue());
     }
 }
 

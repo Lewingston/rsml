@@ -46,7 +46,7 @@ impl Camera {
     #[must_use]
     pub fn get_bind_group(&self) -> &wgpu::BindGroup {
 
-        &self.uniform.get_bind_group()
+        self.uniform.get_bind_group()
     }
 
 

@@ -37,9 +37,8 @@ pub struct WindowHandler {
 }
 
 
-pub struct WindowContext<'renderer, 'window_handler> {
+pub struct WindowContext<'window_handler> {
 
-    pub renderer:       &'renderer Renderer,
     pub surface:        &'window_handler wgpu::Surface<'static>,
     pub surface_config: &'window_handler wgpu::SurfaceConfiguration,
     pub camera:         &'window_handler Rc<RefCell<Camera>>
@@ -52,26 +51,25 @@ impl WindowHandler {
     pub fn new<T: Window + 'static>(
         window:     T,
         event_loop: &ActiveEventLoop,
-        renderer:   &Renderer
     ) -> Result<Self, Error> {
 
         let winit_window = create_winit_window(event_loop)?;
 
-        let surface = renderer.create_surface(winit_window.clone())?;
+        let surface = Renderer::create_window_surface(winit_window.clone())?;
 
-        let surface_config = create_surface_config(&winit_window, &surface, renderer);
+        let surface_config = create_surface_config(&winit_window, &surface, Renderer::get());
 
         let camera = Rc::new(
             RefCell::new(
                 Camera::new(
-                    renderer.get_device(),
+                    Renderer::get().get_device(),
                     surface_config.width,
                     surface_config.height
                 )
             )
         );
 
-        let depth_texture = Texture::create_depth_texture(renderer, &surface_config);
+        let depth_texture = Texture::create_depth_texture(Renderer::get(), &surface_config);
 
         let mut window_handler = Self {
             window: Box::new(window),
@@ -82,54 +80,15 @@ impl WindowHandler {
             depth_texture
         };
 
-        window_handler.start(renderer);
+        window_handler.start();
 
         Ok(window_handler)
     }
 
 
-    pub fn create_window_and_renderer<T: Window + 'static>(
-        window:     T,
-        event_loop: &ActiveEventLoop,
-    ) -> Result<(Self, Renderer), Error> {
-
-        let winit_window = create_winit_window(event_loop)?;
-
-        let (renderer, surface) = pollster::block_on(Renderer::init_and_create_surface(winit_window.clone()))?;
-
-        let surface_config = create_surface_config(&winit_window, &surface, &renderer);
-
-        let camera = Rc::new(
-            RefCell::new(
-                Camera::new(
-                    renderer.get_device(),
-                    surface_config.width,
-                    surface_config.height
-                )
-            )
-        );
-
-        let depth_texture = Texture::create_depth_texture(&renderer, &surface_config);
-
-        let mut window_handler = Self {
-            window: Box::new(window),
-            winit_window,
-            surface,
-            surface_config,
-            camera,
-            depth_texture
-        };
-
-        window_handler.start(&renderer);
-
-        Ok((window_handler, renderer))
-    }
-
-
-    fn start(&mut self, renderer: &Renderer) {
+    fn start(&mut self) {
 
         let context = WindowContext {
-            renderer,
             surface:        &self.surface,
             surface_config: &self.surface_config,
             camera:         &self.camera
@@ -141,10 +100,9 @@ impl WindowHandler {
     }
 
 
-    pub fn event(&mut self, event: winit::event::WindowEvent, renderer: &Renderer) {
+    pub fn event(&mut self, event: winit::event::WindowEvent) {
 
         let context = WindowContext {
-            renderer,
             surface:        &self.surface,
             surface_config: &self.surface_config,
             camera:         &self.camera

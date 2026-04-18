@@ -3,6 +3,7 @@ use wgpu::util::DeviceExt;
 use cgmath::SquareMatrix;
 
 use std::rc::Rc;
+use std::sync::Arc;
 
 use crate::renderer::Renderer;
 use crate::renderer::render_target::RenderTarget;
@@ -100,7 +101,7 @@ pub struct Shape {
     vertices: Vec<Vertex>,
     index_count: usize,
 
-    render_pipeline: Rc<wgpu::RenderPipeline>,
+    render_pipeline: Arc<wgpu::RenderPipeline>,
 
     texture: Option<Rc<Texture>>,
     texture_bind_group: Option<wgpu::BindGroup>
@@ -239,7 +240,7 @@ impl Shape {
     }
 
 
-    fn create_vertex_buffer(device: &wgpu::Device, vertices: &Vec<Vertex>) -> wgpu::Buffer {
+    fn create_vertex_buffer(device: &wgpu::Device, vertices: &[Vertex]) -> wgpu::Buffer {
 
         device.create_buffer_init(
             &wgpu::util::BufferInitDescriptor {
@@ -300,6 +301,7 @@ pub struct Transform {
 impl Transform {
 
 
+    #[must_use]
     pub fn new(device: &wgpu::Device) -> Self {
 
         let matrix  = cgmath::Matrix4::<f32>::identity();
@@ -315,6 +317,7 @@ impl Transform {
     }
 
 
+    #[must_use]
     pub fn get_bind_group(&self) -> &wgpu::BindGroup {
 
         self.uniform.get_bind_group()

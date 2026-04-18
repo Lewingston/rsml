@@ -12,9 +12,7 @@ use crate::error::Error;
 pub struct WindowManager {
 
     window_map: std::collections::HashMap<WindowId, WindowHandler>,
-    renderer:   Option<Renderer>,
 }
-
 
 
 impl WindowManager {
@@ -23,7 +21,6 @@ impl WindowManager {
 
         Self {
             window_map: std::collections::HashMap::new(),
-            renderer:   None
         }
     }
 
@@ -34,17 +31,8 @@ impl WindowManager {
         window: WindowType
     ) -> Result<(), Error> {
 
-        if let Some(renderer) = &self.renderer {
-
-            let window_hadnler = WindowHandler::new(window, event_loop, renderer)?;
-            self.window_map.insert(window_hadnler.get_window_id(), window_hadnler);
-
-        } else {
-
-            let (window_handler, renderer) = WindowHandler::create_window_and_renderer(window, event_loop)?;
-            self.window_map.insert(window_handler.get_window_id(), window_handler);
-            self.renderer = Some(renderer);
-        }
+        let window_handler = WindowHandler::new(window, event_loop)?;
+        self.window_map.insert(window_handler.get_window_id(), window_handler);
 
         Ok(())
     }
@@ -54,9 +42,7 @@ impl WindowManager {
 
         let Some(window) = self.window_map.get_mut(&window_id) else { return; };
 
-        let Some(renderer) = self.renderer.as_ref() else { return; };
-
-        window.resize(width, height, renderer);
+        window.resize(width, height, Renderer::get());
     }
 
 
@@ -64,9 +50,7 @@ impl WindowManager {
 
         let Some(window) = self.window_map.get_mut(&window_id) else { return; };
 
-        let Some(renderer) = self.renderer.as_ref() else { return; };
-
-        window.draw(renderer);
+        window.draw(Renderer::get());
     }
 
 
@@ -74,9 +58,7 @@ impl WindowManager {
 
         let Some(window) = self.window_map.get_mut(&window_id) else { return; };
 
-        let Some(renderer) = self.renderer.as_ref() else { return; };
-
-        window.event(event, renderer);
+        window.event(event);
     }
 
 

@@ -63,6 +63,7 @@ impl Texture {
     }
 
 
+    #[must_use]
     pub fn create_depth_texture(
         renderer: &Renderer,
         surface_config: &wgpu::SurfaceConfiguration
