@@ -18,10 +18,12 @@ pub mod drawable;
 pub use drawable::vertex_buffer::VertexBuffer;
 pub use drawable::drawable::Vertex;
 pub use drawable::drawable::Shape;
+pub use drawable::drawable::Color;
 pub use drawable::texture::Texture;
 
 pub mod renderer;
 
 pub use renderer::render_target::RenderTarget;
+pub use renderer::renderer::Renderer;
 
 mod error;
