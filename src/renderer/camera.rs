@@ -117,10 +117,10 @@ impl CameraParameters {
             ProjectionMode::ORTHOGRAPHIC => {
 
                 cgmath::ortho(
-                    self.width  as f32 / 2.0,
                     self.width  as f32 / -2.0,
-                    self.height as f32 / 2.0,
+                    self.width  as f32 / 2.0,
                     self.height as f32 / -2.0,
+                    self.height as f32 / 2.0,
                     self.znear,
                     self.zfar)
             }
