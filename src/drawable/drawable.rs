@@ -257,7 +257,8 @@ impl Shape {
 pub struct Transform {
 
     matrix:  cgmath::Matrix4<f32>,
-    uniform: MatrixUniform
+    origin:   cgmath::Vector3<f32>,
+    uniform:  MatrixUniform
 }
 
 
@@ -267,10 +268,13 @@ impl Transform {
     pub fn new(device: &wgpu::Device) -> Self {
 
         let matrix  = cgmath::Matrix4::<f32>::identity();
-        let uniform = MatrixUniform::new(device, matrix);
+        let origin   = cgmath::Vector3::<f32>{ x: 0.0, y: 0.0, z: 0.0 };
+
+        let uniform  = MatrixUniform::new(device, matrix);
 
         Self {
             matrix,
+            origin,
             uniform
         }
     }
@@ -317,9 +321,26 @@ impl Transform {
     }
 
 
+    pub fn move_origin(&mut self, v: cgmath::Vector3<f32>) {
+
+        self.origin += v;
+    }
+
+
+    pub fn set_origin(&mut self, v: cgmath::Vector3<f32>) {
+
+        self.origin = v;
+    }
+
+
     pub fn update(&self, queue: &wgpu::Queue) {
 
-        self.uniform.update(queue, self.matrix);
+        let move_to_origin = cgmath::Matrix4::<f32>::from_translation(-self.origin);
+        let move_back      = cgmath::Matrix4::<f32>::from_translation(self.origin);
+
+        let matrix = move_back * self.matrix * move_to_origin;
+
+        self.uniform.update(queue, matrix);
     }
 }
 
