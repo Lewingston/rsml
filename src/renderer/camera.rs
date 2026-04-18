@@ -3,16 +3,25 @@ use crate::renderer::uniform::MatrixUniform;
 
 
 #[derive(Clone)]
+pub enum ProjectionMode {
+
+    PERSPECTIVE,
+    ORTHOGRAPHIC
+}
+
+
+#[derive(Clone)]
 pub struct CameraParameters {
 
-    pub pos:    cgmath::Point3<f32>,
-    pub target: cgmath::Point3<f32>,
-    pub up:     cgmath::Vector3<f32>,
-    pub width:  u32,
-    pub height: u32,
-    pub fovy:   f32,
-    pub znear:  f32,
-    pub zfar:   f32,
+    pub pos:        cgmath::Point3<f32>,
+    pub target:     cgmath::Point3<f32>,
+    pub up:         cgmath::Vector3<f32>,
+    pub width:      u32,
+    pub height:     u32,
+    pub fovy:       f32,
+    pub znear:      f32,
+    pub zfar:       f32,
+    pub projection: ProjectionMode
 }
 
 
@@ -82,33 +91,40 @@ impl CameraParameters {
     pub fn default(width: u32, height: u32) -> Self {
 
         Self {
-            pos:    (0.0, 0.0, 2.0).into(),
-            target: (0.0, 0.0, 0.0).into(),
-            up:     cgmath::Vector3::unit_y(),
+            pos:        (0.0, 0.0, 2.0).into(),
+            target:     (0.0, 0.0, 0.0).into(),
+            up:         cgmath::Vector3::unit_y(),
             width,
             height,
-            fovy:   45.0,
-            znear:  0.01,
-            zfar:   100.0,
+            fovy:       45.0,
+            znear:      0.01,
+            zfar:       100.0,
+            projection: ProjectionMode::PERSPECTIVE
         }
     }
 
 
     fn get_matrix(&self) -> cgmath::Matrix4<f32> {
 
-        let aspect = self.width as f32 / self.height as f32;
+        let view = cgmath::Matrix4::look_at_rh(self.pos, self.target, self.up);
 
-        let view   = cgmath::Matrix4::look_at_rh(self.pos, self.target, self.up);
+        let proj = match self.projection {
+            ProjectionMode::PERSPECTIVE => {
 
-        let proj   = cgmath::perspective(cgmath::Deg(self.fovy), aspect, self.znear, self.zfar);
+                let aspect = self.width as f32 / self.height as f32;
+                cgmath::perspective(cgmath::Deg(self.fovy), aspect, self.znear, self.zfar)
+            }
+            ProjectionMode::ORTHOGRAPHIC => {
 
-        /*
-        let proj = cgmath::ortho(
-            self.width as f32 / -2.0,
-            self.width as f32 / 2.0,
-            self.height as f32 / 2.0,
-            self.height as f32 / -2.0, self.znear, self.zfar);
-        */
+                cgmath::ortho(
+                    self.width  as f32 / 2.0,
+                    self.width  as f32 / -2.0,
+                    self.height as f32 / 2.0,
+                    self.height as f32 / -2.0,
+                    self.znear,
+                    self.zfar)
+            }
+        };
 
         OPENGL_TO_WGPU_MATRIX * proj * view
     }
