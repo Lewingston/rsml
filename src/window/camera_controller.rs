@@ -77,14 +77,20 @@ impl CameraController {
             }
             KeyCode::KeyX => {
 
+                const ORTHO_PROJ_ZOOM : f32 = 75.0;
+
                 match param.projection {
                     ProjectionMode::PERSPECTIVE => {
 
                         param.projection = ProjectionMode::ORTHOGRAPHIC;
+                        param.width  = (param.width  as f32 / ORTHO_PROJ_ZOOM) as u32;
+                        param.height = (param.height as f32 / ORTHO_PROJ_ZOOM) as u32;
                     }
                     ProjectionMode::ORTHOGRAPHIC => {
 
                         param.projection = ProjectionMode::PERSPECTIVE;
+                        param.width  = (param.width  as f32 * ORTHO_PROJ_ZOOM) as u32;
+                        param.height = (param.height as f32 * ORTHO_PROJ_ZOOM) as u32;
                     }
                 };
             }
