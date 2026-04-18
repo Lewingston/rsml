@@ -9,6 +9,8 @@ use crate::renderer::Renderer;
 use crate::renderer::render_target::RenderTarget;
 use crate::renderer::camera::Camera;
 
+use crate::drawable::texture::Texture;
+
 use std::sync::Arc;
 use std::rc::Rc;
 use std::cell::RefCell;
@@ -30,7 +32,8 @@ pub struct WindowHandler {
     winit_window:    Arc<WinitWindow>,
     surface:         wgpu::Surface<'static>,
     surface_config:  wgpu::SurfaceConfiguration,
-    camera:          Rc<RefCell<Camera>>
+    camera:          Rc<RefCell<Camera>>,
+    depth_texture:   Texture
 }
 
 
@@ -68,12 +71,15 @@ impl WindowHandler {
             )
         );
 
+        let depth_texture = Texture::create_depth_texture(renderer, &surface_config);
+
         let mut window_handler = Self {
             window: Box::new(window),
             winit_window,
             surface,
             surface_config,
-            camera
+            camera,
+            depth_texture
         };
 
         window_handler.start(renderer);
@@ -103,12 +109,15 @@ impl WindowHandler {
             )
         );
 
+        let depth_texture = Texture::create_depth_texture(&renderer, &surface_config);
+
         let mut window_handler = Self {
             window: Box::new(window),
             winit_window,
             surface,
             surface_config,
-            camera
+            camera,
+            depth_texture
         };
 
         window_handler.start(&renderer);
@@ -207,7 +216,14 @@ impl WindowHandler {
                         store: wgpu::StoreOp::Store
                     }
                 })],
-                depth_stencil_attachment: None,
+                depth_stencil_attachment: Some(wgpu::RenderPassDepthStencilAttachment {
+                    view: &self.depth_texture.get_view(),
+                    depth_ops: Some(wgpu::Operations {
+                        load:  wgpu::LoadOp::Clear(1.0),
+                        store: wgpu::StoreOp::Store
+                    }),
+                    stencil_ops: None
+                }),
                 occlusion_query_set:      None,
                 timestamp_writes:         None,
                 multiview_mask:           None

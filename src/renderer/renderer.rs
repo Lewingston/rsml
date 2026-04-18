@@ -221,7 +221,13 @@ fn create_pipeline(
             unclipped_depth:    false,
             conservative:       false,
         },
-        depth_stencil: None,
+        depth_stencil:           Some(wgpu::DepthStencilState {
+            format:              wgpu::TextureFormat::Depth32Float,
+            depth_write_enabled: Some(true),
+            depth_compare:       Some(wgpu::CompareFunction::Less),
+            stencil:             wgpu::StencilState::default(),
+            bias:                wgpu::DepthBiasState::default()
+        }),
         multisample: wgpu::MultisampleState {
             count: 1,
             mask:  !0,
