@@ -32,7 +32,6 @@ impl Texture {
     ///
     /// Returns error if loading of image failed
     pub fn from_bytes(
-        renderer: &Renderer,
         bytes:    &[u8],
         label:    Option<&str>
     ) -> Result<Self, Error> {
@@ -42,22 +41,21 @@ impl Texture {
             Err(err)  => return Err(Error::FailedToLoadImage(err.to_string()))
         };
 
-        Ok(Self::from_image(renderer, &image, label))
+        Ok(Self::from_image(&image, label))
     }
 
 
     #[must_use]
     pub fn from_image(
-        renderer: &Renderer,
         image:    &image::DynamicImage,
         label:    Option<&str>
     ) -> Self {
 
-        let texture = Self::create_texture(renderer, image, label);
+        let texture = Self::create_texture(image, label);
 
         let view = texture.create_view(&wgpu::TextureViewDescriptor::default());
 
-        let sampler = Self::create_sampler(renderer.get_device());
+        let sampler = Self::create_sampler(Renderer::get_device());
 
         Self { texture, view, sampler }
     }
@@ -65,7 +63,6 @@ impl Texture {
 
     #[must_use]
     pub fn create_depth_texture(
-        renderer: &Renderer,
         surface_config: &wgpu::SurfaceConfiguration
     ) -> Self {
 
@@ -87,11 +84,11 @@ impl Texture {
             view_formats:    &[]
         };
 
-        let texture = renderer.get_device().create_texture(&desc);
+        let texture = Renderer::get_device().create_texture(&desc);
 
         let view = texture.create_view(&wgpu::TextureViewDescriptor::default());
 
-        let sampler = renderer.get_device().create_sampler(
+        let sampler = Renderer::get_device().create_sampler(
             &wgpu::SamplerDescriptor {
                 address_mode_u: wgpu::AddressMode::ClampToEdge,
                 address_mode_v: wgpu::AddressMode::ClampToEdge,
@@ -111,7 +108,6 @@ impl Texture {
 
 
     fn create_texture(
-        renderer: &Renderer,
         image:    &image::DynamicImage,
         label:    Option<&str>
     ) -> wgpu::Texture {
@@ -125,7 +121,7 @@ impl Texture {
             depth_or_array_layers: 1,
         };
 
-        let texture = renderer.get_device().create_texture(
+        let texture = Renderer::get_device().create_texture(
             &wgpu::TextureDescriptor {
                 label,
                 size,
@@ -138,7 +134,7 @@ impl Texture {
             }
         );
 
-        renderer.get_queue().write_texture(
+        Renderer::get_queue().write_texture(
             wgpu::TexelCopyTextureInfo {
                 aspect:    wgpu::TextureAspect::All,
                 texture:   &texture,

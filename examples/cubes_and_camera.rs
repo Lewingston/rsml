@@ -24,43 +24,41 @@ impl MainScene {
 
     pub fn new(camera: &Rc<RefCell<rsml::Camera>>) -> Self {
 
-        let renderer = rsml::Renderer::get();
-        let mut center_cube = Cube::new(renderer);
+        let mut center_cube = Cube::new();
 
         match rsml::Texture::from_bytes(
-            renderer,
             include_bytes!("./test_image.png"),
             Some("test texture")
         ) {
             Ok(texture) => {
                 let t = Rc::new(texture);
-                center_cube.faces[0].set_texture(t.clone(), renderer);
-                center_cube.faces[1].set_texture(t.clone(), renderer);
-                center_cube.faces[2].set_texture(t.clone(), renderer);
-                center_cube.faces[3].set_texture(t.clone(), renderer);
-                center_cube.faces[4].set_texture(t.clone(), renderer);
-                center_cube.faces[5].set_texture(t.clone(), renderer);
+                center_cube.faces[0].set_texture(t.clone());
+                center_cube.faces[1].set_texture(t.clone());
+                center_cube.faces[2].set_texture(t.clone());
+                center_cube.faces[3].set_texture(t.clone());
+                center_cube.faces[4].set_texture(t.clone());
+                center_cube.faces[5].set_texture(t.clone());
             },
             Err(_err)   => { }
         };
 
-        let mut left_cube = Cube::new(renderer);
-        left_cube.move_x(-2.0, renderer.get_queue());
+        let mut left_cube = Cube::new();
+        left_cube.move_x(-2.0);
 
-        let mut right_cube = Cube::new(renderer);
-        right_cube.move_x(2.0, renderer.get_queue());
+        let mut right_cube = Cube::new();
+        right_cube.move_x(2.0);
 
-        let mut back_cube = Cube::new(renderer);
-        back_cube.move_z(-2.0, renderer.get_queue());
+        let mut back_cube = Cube::new();
+        back_cube.move_z(-2.0);
 
-        let mut top_cube = Cube::new(renderer);
-        top_cube.move_y(2.0, renderer.get_queue());
+        let mut top_cube = Cube::new();
+        top_cube.move_y(2.0);
 
-        let mut bottom_cube = Cube::new(renderer);
-        bottom_cube.move_y(-2.0, renderer.get_queue());
+        let mut bottom_cube = Cube::new();
+        bottom_cube.move_y(-2.0);
 
-        let mut front_cube = Cube::new(renderer);
-        front_cube.move_z(2.0, renderer.get_queue());
+        let mut front_cube = Cube::new();
+        front_cube.move_z(2.0);
 
         let camera_control = rsml::CameraController::new(camera.clone());
 
@@ -134,48 +132,42 @@ struct Cube {
 
 impl Cube {
 
-    pub fn new(renderer: &rsml::Renderer) -> Self {
+    pub fn new() -> Self {
 
-        let mut front = rsml::Shape::create_rectangle(renderer, 1.0, 1.0);
+        let mut front = rsml::Shape::create_rectangle(1.0, 1.0);
         front.get_transform().translate(cgmath::Vector3::<f32>{ x: 0.0, y: 0.0, z: 0.5 });
         front.get_transform().move_origin(cgmath::Vector3::<f32>{ x: 0.0, y: 0.0, z: -0.5 });
-        front.get_transform().update(renderer.get_queue());
-        front.set_color(rsml::Color::random(), renderer.get_device());
+        front.set_color(rsml::Color::random());
 
-        let mut top = rsml::Shape::create_rectangle(renderer, 1.0, 1.0);
+        let mut top = rsml::Shape::create_rectangle(1.0, 1.0);
         top.get_transform().rotate_x(cgmath::Rad::<f32>::from(cgmath::Deg(-90.0)));
         top.get_transform().translate(cgmath::Vector3::<f32>{ x: 0.0, y: 0.0, z: 0.5});
         top.get_transform().move_origin(cgmath::Vector3::<f32>{ x: 0.0, y: 0.0, z: -0.5 });
-        top.get_transform().update(renderer.get_queue());
-        top.set_color(rsml::Color::random(), renderer.get_device());
+        top.set_color(rsml::Color::random());
 
-        let mut left = rsml::Shape::create_rectangle(renderer, 1.0, 1.0);
-        left.set_color(rsml::Color::random(), renderer.get_device());
+        let mut left = rsml::Shape::create_rectangle(1.0, 1.0);
+        left.set_color(rsml::Color::random());
         left.get_transform().rotate_y(cgmath::Rad::<f32>::from(cgmath::Deg(-90.0)));
         left.get_transform().translate(cgmath::Vector3::<f32>{ x: 0.0, y: 0.0, z: 0.5 });
         left.get_transform().move_origin(cgmath::Vector3::<f32>{ x: 0.0, y: 0.0, z: -0.5 });
-        left.get_transform().update(renderer.get_queue());
 
-        let mut right = rsml::Shape::create_rectangle(renderer, 1.0, 1.0);
-        right.set_color(rsml::Color::random(), renderer.get_device());
+        let mut right = rsml::Shape::create_rectangle(1.0, 1.0);
+        right.set_color(rsml::Color::random());
         right.get_transform().rotate_y(cgmath::Rad::<f32>::from(cgmath::Deg(90.0)));
         right.get_transform().translate(cgmath::Vector3::<f32>{ x: 0.0, y: 0.0, z: 0.5 });
         right.get_transform().move_origin(cgmath::Vector3::<f32>{ x: 0.0, y: 0.0, z: -0.5 });
-        right.get_transform().update(renderer.get_queue());
 
-        let mut back = rsml::Shape::create_rectangle(renderer, 1.0, 1.0);
-        back.set_color(rsml::Color::random(), renderer.get_device());
+        let mut back = rsml::Shape::create_rectangle(1.0, 1.0);
+        back.set_color(rsml::Color::random());
         back.get_transform().rotate_y(cgmath::Rad::<f32>::from(cgmath::Deg(180.0)));
         back.get_transform().translate(cgmath::Vector3::<f32>{ x: 0.0, y: 0.0, z: 0.5 });
         back.get_transform().move_origin(cgmath::Vector3::<f32>{ x: 0.0, y: 0.0, z: -0.5 });
-        back.get_transform().update(renderer.get_queue());
 
-        let mut bottom = rsml::Shape::create_rectangle(renderer, 1.0, 1.0);
-        bottom.set_color(rsml::Color::random(), renderer.get_device());
+        let mut bottom = rsml::Shape::create_rectangle(1.0, 1.0);
+        bottom.set_color(rsml::Color::random());
         bottom.get_transform().rotate_x(cgmath::Rad::<f32>::from(cgmath::Deg(90.0)));
         bottom.get_transform().translate(cgmath::Vector3::<f32>{ x: 0.0, y: 0.0, z: 0.5 });
         bottom.get_transform().move_origin(cgmath::Vector3::<f32>{ x: 0.0, y: 0.0, z: -0.5 });
-        bottom.get_transform().update(renderer.get_queue());
 
         Self {
             faces: [
@@ -198,32 +190,29 @@ impl Cube {
         }
     }
 
-    pub fn move_x(&mut self, x: f32, queue: &wgpu::Queue) {
+    pub fn move_x(&mut self, x: f32) {
 
         for face in &mut self.faces {
 
             face.get_transform().translate(cgmath::Vector3::<f32>{ x: x, y: 0.0, z: 0.0 });
-            face.get_transform().update(queue);
         }
     }
 
 
-    pub fn move_y(&mut self, y: f32, queue: &wgpu::Queue) {
+    pub fn move_y(&mut self, y: f32) {
 
         for face in &mut self.faces {
 
             face.get_transform().translate(cgmath::Vector3::<f32>{ x: 0.0, y: y, z: 0.0 });
-            face.get_transform().update(queue);
         }
     }
 
 
-    pub fn move_z(&mut self, z: f32, queue: &wgpu::Queue) {
+    pub fn move_z(&mut self, z: f32) {
 
         for face in &mut self.faces {
 
             face.get_transform().translate(cgmath::Vector3::<f32>{ x: 0.0, y: 0.0, z: z });
-            face.get_transform().update(queue);
         }
     }
 
@@ -307,11 +296,7 @@ impl rsml::Window for MainWindow {
 
             //scene.handle_key(code, key_state.is_pressed(), context.renderer.get_queue());
 
-            let camera_moved = scene.camera_control.keyboard_input(code, key_state.is_pressed());
-
-            if camera_moved {
-                scene.camera_control.update_camera();
-            }
+            scene.camera_control.keyboard_input(code, key_state.is_pressed());
         }
     }
 }

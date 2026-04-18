@@ -44,11 +44,11 @@ impl Renderer {
 
 
     #[must_use]
-    pub fn get_device(&self) -> &wgpu::Device { &self.device }
+    pub fn get_device() -> &'static wgpu::Device { &Renderer::get().device }
 
 
     #[must_use]
-    pub fn get_queue(&self) -> &wgpu::Queue { &self.queue }
+    pub fn get_queue() -> &'static wgpu::Queue { &Renderer::get().queue }
 
 
     #[must_use]

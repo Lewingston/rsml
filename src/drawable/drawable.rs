@@ -119,7 +119,7 @@ impl Shape {
 
 
     #[must_use]
-    pub fn create_triangle(renderer: &Renderer) -> Self {
+    pub fn create_triangle() -> Self {
 
         let texture_pos = [0.0, 0.0];
 
@@ -133,13 +133,15 @@ impl Shape {
             0, 1, 2
         ];
 
+        let device = Renderer::get_device();
+
         Self {
-            transform:          Transform::new(renderer.get_device()),
-            vertex_buffer:      Self::create_vertex_buffer(renderer.get_device(), &vertices),
-            index_buffer:       Self::create_index_buffer(renderer.get_device(), indices),
+            transform:          Transform::new(device),
+            vertex_buffer:      Self::create_vertex_buffer(&vertices),
+            index_buffer:       Self::create_index_buffer(device, indices),
             vertices:           vertices,
             index_count:        indices.len(),
-            render_pipeline:    renderer.get_default_color_render_pipeline(),
+            render_pipeline:    Renderer::get().get_default_color_render_pipeline(),
             texture:            None,
             texture_bind_group: None
         }
@@ -147,7 +149,7 @@ impl Shape {
 
 
     #[must_use]
-    pub fn create_rectangle(renderer: &Renderer, width: f32, height: f32) -> Self {
+    pub fn create_rectangle(width: f32, height: f32) -> Self {
 
         let color = Color{ r: 255, g: 0, b: 0, a: 255 };
 
@@ -163,13 +165,15 @@ impl Shape {
             0, 3, 2
         ];
 
+        let device = Renderer::get_device();
+
         Self {
-            transform:          Transform::new(renderer.get_device()),
-            vertex_buffer:      Self::create_vertex_buffer(renderer.get_device(), &vertices),
-            index_buffer:       Self::create_index_buffer(renderer.get_device(), indices),
+            transform:          Transform::new(device),
+            vertex_buffer:      Self::create_vertex_buffer(&vertices),
+            index_buffer:       Self::create_index_buffer(device, indices),
             vertices:           vertices,
             index_count:        indices.len(),
-            render_pipeline:    renderer.get_default_color_render_pipeline(),
+            render_pipeline:    Renderer::get().get_default_color_render_pipeline(),
             texture:            None,
             texture_bind_group: None
         }
@@ -178,10 +182,9 @@ impl Shape {
 
     #[must_use]
     pub fn create_sprite(
-        renderer: &Renderer,
-        width:    f32,
-        height:   f32,
-        texture:  Rc<Texture>
+        width:   f32,
+        height:  f32,
+        texture: Rc<Texture>
     ) -> Self {
 
         let color = Color{ r: 255, g: 255, b: 255, a: 255 };
@@ -198,51 +201,53 @@ impl Shape {
             0, 3, 2
         ];
 
+        let device = Renderer::get_device();
+
         let texture_bind_group = Self::create_texture_bind_group(
-            renderer.get_device(),
+            device,
             texture.get_view(),
             texture.get_sampler()
         );
 
         Self {
-            transform:          Transform::new(renderer.get_device()),
-            vertex_buffer:      Self::create_vertex_buffer(renderer.get_device(), &vertices),
-            index_buffer:       Self::create_index_buffer(renderer.get_device(), indices),
+            transform:          Transform::new(device),
+            vertex_buffer:      Self::create_vertex_buffer(&vertices),
+            index_buffer:       Self::create_index_buffer(device, indices),
             vertices:           vertices,
             index_count:        indices.len(),
-            render_pipeline:    renderer.get_default_texture_render_pipeline(),
+            render_pipeline:    Renderer::get().get_default_texture_render_pipeline(),
             texture:            Some(texture),
             texture_bind_group: Some(texture_bind_group)
         }
     }
 
 
-    pub fn set_color(&mut self, color: Color, device: &wgpu::Device) {
+    pub fn set_color(&mut self, color: Color) {
 
         for vertex in &mut self.vertices {
 
             vertex.color = color;
         }
 
-        self.vertex_buffer = Self::create_vertex_buffer(device, &self.vertices);
+        self.vertex_buffer = Self::create_vertex_buffer(&self.vertices);
     }
 
 
-    pub fn set_texture(&mut self, texture: Rc<Texture>, renderer: &Renderer) {
+    pub fn set_texture(&mut self, texture: Rc<Texture>) {
 
         self.texture_bind_group = Some(Self::create_texture_bind_group(
-            renderer.get_device(),
+            Renderer::get_device(),
             texture.get_view(),
             texture.get_sampler()
         ));
         self.texture = Some(texture);
-        self.render_pipeline = renderer.get_default_texture_render_pipeline();
+        self.render_pipeline = Renderer::get().get_default_texture_render_pipeline();
     }
 
 
-    fn create_vertex_buffer(device: &wgpu::Device, vertices: &[Vertex]) -> wgpu::Buffer {
+    fn create_vertex_buffer(vertices: &[Vertex]) -> wgpu::Buffer {
 
-        device.create_buffer_init(
+        Renderer::get_device().create_buffer_init(
             &wgpu::util::BufferInitDescriptor {
                 label:    Some("vertex buffer"),
                 contents: bytemuck::cast_slice(vertices),
@@ -328,6 +333,8 @@ impl Transform {
 
         self.matrix =
             cgmath::Matrix4::<f32>::from_translation(v) * self.matrix;
+
+        self.update();
     }
 
 
@@ -335,6 +342,8 @@ impl Transform {
 
         self.matrix =
             self.matrix * cgmath::Matrix4::<f32>::from_angle_x(angle);
+
+        self.update();
     }
 
 
@@ -342,6 +351,8 @@ impl Transform {
 
         self.matrix =
             self.matrix * cgmath::Matrix4::<f32>::from_angle_y(angle);
+
+        self.update();
     }
 
 
@@ -349,6 +360,8 @@ impl Transform {
 
         self.matrix =
             self.matrix * cgmath::Matrix4::<f32>::from_angle_z(angle);
+
+        self.update();
     }
 
 
@@ -356,29 +369,33 @@ impl Transform {
 
         self.matrix =
             self.matrix * cgmath::Matrix4::<f32>::from_nonuniform_scale(v.x, v.y, v.z);
+
+        self.update();
     }
 
 
     pub fn move_origin(&mut self, v: cgmath::Vector3<f32>) {
 
         self.origin += v;
+        self.update();
     }
 
 
     pub fn set_origin(&mut self, v: cgmath::Vector3<f32>) {
 
         self.origin = v;
+        self.update();
     }
 
 
-    pub fn update(&self, queue: &wgpu::Queue) {
+    fn update(&self) {
 
         let move_to_origin = cgmath::Matrix4::<f32>::from_translation(-self.origin);
         let move_back      = cgmath::Matrix4::<f32>::from_translation(self.origin);
 
         let matrix = move_back * self.matrix * move_to_origin;
 
-        self.uniform.update(queue, matrix);
+        self.uniform.update(matrix);
     }
 }
 

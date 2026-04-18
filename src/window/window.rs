@@ -62,14 +62,13 @@ impl WindowHandler {
         let camera = Rc::new(
             RefCell::new(
                 Camera::new(
-                    Renderer::get().get_device(),
                     surface_config.width,
                     surface_config.height
                 )
             )
         );
 
-        let depth_texture = Texture::create_depth_texture(Renderer::get(), &surface_config);
+        let depth_texture = Texture::create_depth_texture(&surface_config);
 
         let mut window_handler = Self {
             window: Box::new(window),
@@ -116,22 +115,20 @@ impl WindowHandler {
         &mut self,
         width:  u32,
         height: u32,
-        renderer: &Renderer
     ) {
         self.surface_config.width  = width;
         self.surface_config.height = height;
-        self.surface.configure(renderer.get_device(), &self.surface_config);
-        self.depth_texture = Texture::create_depth_texture(renderer, &self.surface_config);
+        self.surface.configure(Renderer::get_device(), &self.surface_config);
+        self.depth_texture = Texture::create_depth_texture(&self.surface_config);
 
         let mut cam_params = self.camera.borrow().get_parameters().clone();
         cam_params.width  = width;
         cam_params.height = height;
         self.camera.borrow_mut().set_parameters(cam_params);
-        self.camera.borrow().update(renderer.get_queue());
     }
 
 
-    pub fn draw(&mut self, renderer: &Renderer) {
+    pub fn draw(&mut self) {
 
         self.winit_window.request_redraw();
 
@@ -139,7 +136,7 @@ impl WindowHandler {
 
             wgpu::CurrentSurfaceTexture::Success(surface_texture) => surface_texture,
             wgpu::CurrentSurfaceTexture::Suboptimal(surface_texture) => {
-                self.surface.configure(renderer.get_device(), &self.surface_config);
+                self.surface.configure(Renderer::get_device(), &self.surface_config);
                 surface_texture
             }
             wgpu::CurrentSurfaceTexture::Timeout |
@@ -149,7 +146,7 @@ impl WindowHandler {
                 return;
             }
             wgpu::CurrentSurfaceTexture::Outdated => {
-                self.surface.configure(renderer.get_device(), &self.surface_config);
+                self.surface.configure(Renderer::get_device(), &self.surface_config);
                 return;
             }
             wgpu::CurrentSurfaceTexture::Lost => {
@@ -160,7 +157,7 @@ impl WindowHandler {
 
         let view = output.texture.create_view(&wgpu::TextureViewDescriptor::default());
 
-        let mut encoder = renderer.get_device().create_command_encoder(&wgpu::CommandEncoderDescriptor {
+        let mut encoder = Renderer::get_device().create_command_encoder(&wgpu::CommandEncoderDescriptor {
             label: Some("Render Encoder")
         });
 
@@ -199,7 +196,7 @@ impl WindowHandler {
             self.window.draw(&mut render_target);
         }
 
-        renderer.get_queue().submit(std::iter::once(encoder.finish()));
+        Renderer::get_queue().submit(std::iter::once(encoder.finish()));
         output.present();
     }
 

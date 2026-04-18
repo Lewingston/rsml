@@ -1,4 +1,6 @@
 
+use crate::renderer::renderer::Renderer;
+
 use wgpu::util::DeviceExt;
 
 
@@ -25,9 +27,9 @@ impl MatrixUniform {
     }
 
 
-    pub fn update(&self, queue: &wgpu::Queue, matrix: cgmath::Matrix4<f32>) {
+    pub fn update(&self, matrix: cgmath::Matrix4<f32>) {
 
-        queue.write_buffer(&self.buffer, 0, bytemuck::cast_slice(&[Self::get_matrix(matrix)]));
+        Renderer::get_queue().write_buffer(&self.buffer, 0, bytemuck::cast_slice(&[Self::get_matrix(matrix)]));
     }
 
 

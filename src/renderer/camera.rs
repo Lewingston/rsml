@@ -1,5 +1,6 @@
 
 use crate::renderer::uniform::MatrixUniform;
+use crate::renderer::renderer::Renderer;
 
 
 #[derive(Clone)]
@@ -58,11 +59,11 @@ impl Camera {
 
 
     #[must_use]
-    pub fn new(device: &wgpu::Device, width: u32, height: u32) -> Self {
+    pub fn new(width: u32, height: u32) -> Self {
 
         let parameters = CameraParameters::default(width, height);
 
-        let uniform = MatrixUniform::new(device, parameters.get_matrix());
+        let uniform = MatrixUniform::new(Renderer::get_device(), parameters.get_matrix());
 
         Self {
             parameters,
@@ -74,12 +75,7 @@ impl Camera {
     pub fn set_parameters(&mut self, parameters: CameraParameters) {
 
         self.parameters = parameters;
-    }
-
-
-    pub fn update(&self, queue: &wgpu::Queue) {
-
-        self.uniform.update(queue, self.parameters.get_matrix());
+        self.uniform.update(self.parameters.get_matrix());
     }
 }
 

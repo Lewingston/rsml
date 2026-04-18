@@ -1,7 +1,6 @@
 
 use crate::renderer::camera::Camera;
 use crate::renderer::camera::ProjectionMode;
-use crate::renderer::renderer::Renderer;
 
 use std::rc::Rc;
 use std::cell::RefCell;
@@ -101,12 +100,6 @@ impl CameraController {
         param.pos = cgmath::Point3::from_vec(pos.to_pos() + param.target.to_vec());
         self.camera.borrow_mut().set_parameters(param);
         true
-    }
-
-
-    pub fn update_camera(&self) {
-
-        self.camera.borrow().update(Renderer::get().get_queue());
     }
 }
 

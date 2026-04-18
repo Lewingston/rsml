@@ -2,7 +2,6 @@
 use winit::window::WindowId;
 use winit::event_loop::ActiveEventLoop;
 
-use crate::renderer::Renderer;
 use crate::window::Window;
 use crate::window::WindowHandler;
 
@@ -42,7 +41,7 @@ impl WindowManager {
 
         let Some(window) = self.window_map.get_mut(&window_id) else { return; };
 
-        window.resize(width, height, Renderer::get());
+        window.resize(width, height);
     }
 
 
@@ -50,7 +49,7 @@ impl WindowManager {
 
         let Some(window) = self.window_map.get_mut(&window_id) else { return; };
 
-        window.draw(Renderer::get());
+        window.draw();
     }
 
 

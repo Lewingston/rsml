@@ -78,7 +78,7 @@ impl rsml::Window for MainWindow {
     }
 
 
-    fn event(&mut self, event: winit::event::WindowEvent, context: rsml::WindowContext) {
+    fn event(&mut self, event: winit::event::WindowEvent, _context: rsml::WindowContext) {
 
         if let winit::event::WindowEvent::KeyboardInput {
             event: winit::event::KeyEvent {
@@ -91,11 +91,7 @@ impl rsml::Window for MainWindow {
 
             let Some(scene) = &mut self.scene else { return; };
 
-            let camera_moved = scene.camera_control.keyboard_input(code, key_state.is_pressed());
-
-            if camera_moved {
-                scene.camera_control.update_camera();
-            }
+            scene.camera_control.keyboard_input(code, key_state.is_pressed());
         }
     }
 }
@@ -126,12 +122,12 @@ impl SecondaryWindow {
 
 impl rsml::Window for SecondaryWindow {
 
-    fn start(&mut self, context: rsml::WindowContext) {
+    fn start(&mut self, _context: rsml::WindowContext) {
 
         println!("SecondaryWindow start");
 
         self.scene = Some(SecondaryScene {
-            square: rsml::Shape::create_rectangle(rsml::Renderer::get(), 0.5, 0.5)
+            square: rsml::Shape::create_rectangle(0.5, 0.5)
             //square: rsml::Shape::create_rectangle(context.renderer, 100.0, 100.0)
         });
     }
