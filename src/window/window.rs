@@ -158,11 +158,18 @@ impl WindowHandler {
         &mut self,
         width:  u32,
         height: u32,
-        device: &wgpu::Device
+        renderer: &Renderer
     ) {
         self.surface_config.width  = width;
         self.surface_config.height = height;
-        self.surface.configure(device, &self.surface_config);
+        self.surface.configure(renderer.get_device(), &self.surface_config);
+        self.depth_texture = Texture::create_depth_texture(renderer, &self.surface_config);
+
+        let mut cam_params = self.camera.borrow().get_parameters().clone();
+        cam_params.width  = width;
+        cam_params.height = height;
+        self.camera.borrow_mut().set_parameters(cam_params);
+        self.camera.borrow().update(renderer.get_queue());
     }
 
 

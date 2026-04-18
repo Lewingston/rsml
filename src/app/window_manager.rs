@@ -56,7 +56,7 @@ impl WindowManager {
 
         let Some(renderer) = self.renderer.as_ref() else { return; };
 
-        window.resize(width, height, renderer.get_device());
+        window.resize(width, height, renderer);
     }
 
 
