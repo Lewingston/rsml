@@ -75,6 +75,19 @@ impl Camera {
     pub fn set_parameters(&mut self, parameters: CameraParameters) {
 
         self.parameters = parameters;
+        self.update();
+    }
+
+
+    pub fn set_projection_mode(&mut self, mode: ProjectionMode) {
+
+        self.parameters.projection = mode;
+        self.update();
+    }
+
+
+    fn update(&self) {
+
         self.uniform.update(self.parameters.get_matrix());
     }
 }
