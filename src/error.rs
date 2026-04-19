@@ -15,4 +15,16 @@ pub enum Error {
 
     #[error("Failed to load image: {0}")]
     FailedToLoadImage(String),
+
+    #[error("Failed to load font: {0}")]
+    FailedToLoadFont(String),
+
+    #[error("Failed to open font file: {0}")]
+    FailedToOpenFontFile(String),
+
+    #[error("Failed to create font texture: {0}")]
+    FailedToCreateFontTexture(String),
+
+    #[error("Failed to create font texture image: {0}")]
+    FailedToCreateFontTextureImage(String),
 }

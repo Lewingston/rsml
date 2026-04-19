@@ -1,9 +1,6 @@
 
 use rsml::drawable::drawable::Drawable;
 
-use std::rc::Rc;
-use std::cell::RefCell;
-
 
 struct MyApp {
 
@@ -17,29 +14,68 @@ impl rsml::App for MyApp {
         println!("APP STARTED!");
 
         _ = context.create_window(MainWindow::new());
-        _ = context.create_window(SecondaryWindow::new());
     }
 }
 
 
 struct MainScene {
 
-    pub camera_control: rsml::CameraController
+    pub sprite: rsml::Shape,
+
+    font: rsml::Font,
+
+    font_size: f32
 }
 
 
 impl MainScene {
 
+    pub fn new() -> Option<Self> {
 
-    pub fn new(
-        camera: &Rc<RefCell<rsml::Camera>>,
-    ) -> Self {
+        let font_size = 42.0;
 
-            let camera_control = rsml::CameraController::new(camera.clone());
-
-            Self {
-                camera_control
+        let mut font = match rsml::Font::from_file("./comic.ttf") {
+            Ok(font) => font,
+            Err(_) => {
+                println!("Failed to load font from file!");
+                return None;
             }
+        };
+
+        let texture = match font.get_texture(font_size) {
+            Ok(texture) => texture,
+            Err(_) => { return None; }
+        };
+
+        let sprite = rsml::Shape::create_sprite(
+            texture.get_width() as f32,
+            texture.get_height() as f32,
+            texture);
+
+        Some(Self {
+            sprite,
+            font,
+            font_size
+        })
+    }
+
+
+    fn add_char(&mut self, c: char) {
+
+        _ = match self.font.get_char(c, self.font_size) {
+            Ok(params) => { params },
+            Err(_) => { return; }
+        };
+
+        let texture = match self.font.get_texture(self.font_size) {
+            Ok(texture) => texture,
+            Err(_) => { return; }
+        };
+
+        self.sprite = rsml::Shape::create_sprite(
+            texture.get_width() as f32,
+            texture.get_height() as f32,
+            texture);
     }
 }
 
@@ -66,15 +102,17 @@ impl rsml::Window for MainWindow {
 
     fn start(&mut self, context: rsml::WindowContext) {
 
-        println!("MainWindow start");
+        context.camera.borrow_mut().set_projection_mode(rsml::renderer::camera::ProjectionMode::ORTHOGRAPHIC);
 
-        self.scene = Some(MainScene::new(context.camera));
+        self.scene = MainScene::new();
     }
 
 
-    fn draw(&mut self, _render_target: &mut rsml::RenderTarget) {
+    fn draw(&mut self, render_target: &mut rsml::RenderTarget) {
 
-        //let Some(scene) = &self.scene else { return; };
+        let Some(scene) = &self.scene else { return; };
+
+        scene.sprite.draw(render_target);
     }
 
 
@@ -84,6 +122,7 @@ impl rsml::Window for MainWindow {
             event: winit::event::KeyEvent {
                 physical_key: winit::keyboard::PhysicalKey::Code(code),
                 state: key_state,
+                text,
                 ..
             },
             ..
@@ -91,57 +130,18 @@ impl rsml::Window for MainWindow {
 
             let Some(scene) = &mut self.scene else { return; };
 
-            scene.camera_control.keyboard_input(code, key_state.is_pressed());
+            if code.eq(&winit::keyboard::KeyCode::Escape) & key_state.is_pressed() {
+
+            } else if key_state.is_pressed() {
+
+                let Some(text) = text else { return; };
+
+                for c in text.chars() {
+
+                    scene.add_char(c);
+                }
+            }
         }
-    }
-}
-
-
-struct SecondaryScene {
-
-    pub square: rsml::Shape
-}
-
-
-struct SecondaryWindow {
-
-    scene: Option<SecondaryScene>
-}
-
-
-impl SecondaryWindow {
-
-    fn new() -> Self {
-
-        Self{
-            scene: None
-        }
-    }
-}
-
-
-impl rsml::Window for SecondaryWindow {
-
-    fn start(&mut self, _context: rsml::WindowContext) {
-
-        println!("SecondaryWindow start");
-
-        self.scene = Some(SecondaryScene {
-            square: rsml::Shape::create_rectangle(0.5, 0.5)
-            //square: rsml::Shape::create_rectangle(context.renderer, 100.0, 100.0)
-        });
-    }
-
-    fn draw(&mut self, render_target: &mut rsml::RenderTarget) {
-
-        let Some(scene) = &self.scene else { return; };
-
-        scene.square.draw(render_target);
-    }
-
-    fn event(&mut self, event: winit::event::WindowEvent, _context: rsml::WindowContext) {
-
-        println!("SecondaryWindow event: {event:?}");
     }
 }
 

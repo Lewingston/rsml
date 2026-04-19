@@ -28,12 +28,20 @@ impl Texture {
     pub fn get_sampler(&self) -> &wgpu::Sampler { &self.sampler }
 
 
+    #[must_use]
+    pub fn get_width(&self) -> u32 { self.texture.width() }
+
+
+    #[must_use]
+    pub fn get_height(&self) -> u32 { self.texture.height() }
+
+
     /// # Errors
     ///
     /// Returns error if loading of image failed
-    pub fn from_bytes(
-        bytes:    &[u8],
-        label:    Option<&str>
+    pub fn from_formatted_bytes(
+        bytes:  &[u8],
+        label:  Option<&str>
     ) -> Result<Self, Error> {
 
         let image = match image::load_from_memory(bytes) {
@@ -41,17 +49,52 @@ impl Texture {
             Err(err)  => return Err(Error::FailedToLoadImage(err.to_string()))
         };
 
-        Ok(Self::from_image(&image, label))
+        Ok(Self::from_dynamic_image(&image, label))
+    }
+
+
+    pub fn from_gray_image_bytes(
+        bytes:  Vec<u8>,
+        width:  u32,
+        height: u32,
+        label:  Option<&str>
+    ) -> Result<Self, Error> {
+
+        let image = match image::GrayImage::from_raw(width, height, bytes) {
+            Some(image) => image,
+            None => { return Err(Error::FailedToLoadImage("Failed to load raw image data".to_string())); }
+        };
+
+        Ok(Self::from_gray_image(&image, width, height, label))
+    }
+
+
+    pub fn from_gray_image(
+        image:  &image::GrayImage,
+        width:  u32,
+        height: u32,
+        label:  Option<&str>
+    ) -> Self {
+
+        let texture = Self::create_texture_from_gray_image(image, width, height, label);
+        let view    = texture.create_view(&wgpu::TextureViewDescriptor::default());
+        let sampler = Self::create_sampler(Renderer::get_device());
+
+        Self {
+            texture,
+            view,
+            sampler
+        }
     }
 
 
     #[must_use]
-    pub fn from_image(
-        image:    &image::DynamicImage,
-        label:    Option<&str>
+    pub fn from_dynamic_image(
+        image: &image::DynamicImage,
+        label: Option<&str>
     ) -> Self {
 
-        let texture = Self::create_texture(image, label);
+        let texture = Self::create_texture_from_dynamic_image(image, label);
 
         let view = texture.create_view(&wgpu::TextureViewDescriptor::default());
 
@@ -107,7 +150,7 @@ impl Texture {
     }
 
 
-    fn create_texture(
+    fn create_texture_from_dynamic_image(
         image:    &image::DynamicImage,
         label:    Option<&str>
     ) -> wgpu::Texture {
@@ -115,9 +158,25 @@ impl Texture {
         let rgba_image = image.to_rgba8();
         let dimensions = image.dimensions();
 
+        Texture::create_texture_from_rgba8(
+            &rgba_image,
+            dimensions.0,
+            dimensions.1,
+            label
+        )
+    }
+
+
+    fn create_texture_from_rgba8(
+        image: &image::RgbaImage,
+        width: u32,
+        height: u32,
+        label: Option<&str>
+    ) -> wgpu::Texture {
+
         let size = wgpu::Extent3d {
-            width:                 dimensions.0,
-            height:                dimensions.1,
+            width,
+            height,
             depth_or_array_layers: 1,
         };
 
@@ -141,11 +200,57 @@ impl Texture {
                 mip_level: 0,
                 origin:    wgpu::Origin3d::ZERO
             },
-            &rgba_image,
+            &image,
             wgpu::TexelCopyBufferLayout {
                 offset:         0,
-                bytes_per_row:  Some(4 * dimensions.0),
-                rows_per_image: Some(dimensions.1)
+                bytes_per_row:  Some(4 * width),
+                rows_per_image: Some(height)
+            },
+            size
+        );
+
+        texture
+    }
+
+
+    fn create_texture_from_gray_image(
+        image: &image::GrayImage,
+        width: u32,
+        height: u32,
+        label: Option<&str>
+    ) -> wgpu::Texture {
+
+        let size = wgpu::Extent3d {
+            width,
+            height,
+            depth_or_array_layers: 1,
+        };
+
+        let texture = Renderer::get_device().create_texture(
+            &wgpu::TextureDescriptor {
+                label,
+                size,
+                mip_level_count: 1,
+                sample_count:    1,
+                dimension:       wgpu::TextureDimension::D2,
+                format:          wgpu::TextureFormat::R8Unorm,
+                usage:           wgpu::TextureUsages::TEXTURE_BINDING | wgpu::TextureUsages::COPY_DST,
+                view_formats:    &[]
+            }
+        );
+
+        Renderer::get_queue().write_texture(
+            wgpu::TexelCopyTextureInfo {
+                aspect:    wgpu::TextureAspect::All,
+                texture:   &texture,
+                mip_level: 0,
+                origin:    wgpu::Origin3d::ZERO
+            },
+            &image,
+            wgpu::TexelCopyBufferLayout {
+                offset:         0,
+                bytes_per_row:  Some(width),
+                rows_per_image: Some(height)
             },
             size
         );

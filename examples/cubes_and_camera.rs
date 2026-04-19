@@ -26,7 +26,7 @@ impl MainScene {
 
         let mut center_cube = Cube::new();
 
-        match rsml::Texture::from_bytes(
+        match rsml::Texture::from_formatted_bytes(
             include_bytes!("./test_image.png"),
             Some("test texture")
         ) {

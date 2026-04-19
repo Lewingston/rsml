@@ -183,7 +183,8 @@ impl Renderer {
         let limits = wgpu::Limits::downlevel_webgl2_default();
 
         #[cfg(not(target_arch = "wasm32"))]
-        let limits = wgpu::Limits::default();
+        let limits = adapter.limits();
+        //let limits = wgpu::Limits::default();
 
         match adapter.request_device(&wgpu::DeviceDescriptor {
             label:                 None,

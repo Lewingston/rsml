@@ -20,6 +20,7 @@ pub use drawable::drawable::Vertex;
 pub use drawable::drawable::Shape;
 pub use drawable::drawable::Color;
 pub use drawable::texture::Texture;
+pub use drawable::font::Font;
 
 pub mod renderer;
 
