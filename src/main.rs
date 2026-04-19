@@ -34,17 +34,13 @@ impl MainScene {
 
         let font_size = 42.0;
 
-        let mut font = match rsml::Font::from_file("./comic.ttf") {
-            Ok(font) => font,
-            Err(_) => {
-                println!("Failed to load font from file!");
-                return None;
-            }
+        let Ok(mut font) = rsml::Font::from_file("./comic.ttf") else {
+            println!("Failed to load font from file!");
+            return None;
         };
 
-        let texture = match font.get_texture(font_size) {
-            Ok(texture) => texture,
-            Err(_) => { return None; }
+        let Ok(texture) = font.get_texture(font_size) else {
+            return None;
         };
 
         let sprite = rsml::Shape::create_sprite(
@@ -62,15 +58,9 @@ impl MainScene {
 
     fn add_char(&mut self, c: char) {
 
-        _ = match self.font.get_char(c, self.font_size) {
-            Ok(params) => { params },
-            Err(_) => { return; }
-        };
+        let Ok(_) = self.font.get_char(c, self.font_size) else { return; };
 
-        let texture = match self.font.get_texture(self.font_size) {
-            Ok(texture) => texture,
-            Err(_) => { return; }
-        };
+        let Ok(texture) = self.font.get_texture(self.font_size) else { return; };
 
         self.sprite = rsml::Shape::create_sprite(
             texture.get_width() as f32,

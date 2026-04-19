@@ -41,11 +41,11 @@ impl CameraController {
         use winit::keyboard::KeyCode as KeyCode;
         use cgmath::EuclideanSpace;
 
+        const POLAR_DEAD_SCONE: f32 = 0.01;
+
         if !is_pressed {
             return false;
         }
-
-        const POLAR_DEAD_SCONE: f32 = 0.01;
 
         let mut param = self.camera.borrow().get_parameters().clone();
         let mut pos = SphericalPos::from_pos(param.pos - param.target);

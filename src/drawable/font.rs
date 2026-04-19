@@ -14,6 +14,9 @@ pub struct Font {
 
 impl Font {
 
+    /// # Errors
+    ///
+    /// Returns error if loading of font file failed.
     pub fn from_file(font_file_path: &str) -> Result<Self, Error> {
 
         let data = match std::fs::read(font_file_path) {
@@ -25,6 +28,9 @@ impl Font {
     }
 
 
+    /// # Errors
+    ///
+    /// Returns error if loading of font failed.
     pub fn from_bytes(data: &[u8]) -> Result<Self, Error> {
 
         let font = match fontdue::Font::from_bytes(data, fontdue::FontSettings::default()) {
@@ -39,6 +45,11 @@ impl Font {
     }
 
 
+    /// # Errors
+    ///
+    /// Returns an error if character can not be retrieved from font.
+    /// The reason is most likely an issue with the generation of the
+    /// image for the font texture atlas.
     pub fn get_char(&mut self, c: char, size: f32) -> Result<CharParams, Error> {
 
         let size = size as u32;
@@ -58,6 +69,11 @@ impl Font {
     }
 
 
+    /// # Errors
+    ///
+    /// Returns an error if the texture atlas for the font can not be
+    /// retrieved. Most likely reason is an issue with the creation of
+    /// the image for the font texture atlas.
     pub fn get_texture(&mut self, size: f32) -> Result<Rc<Texture>, Error> {
 
         let size = size as u32;
@@ -93,9 +109,10 @@ impl FontTextureAtlas {
 
     pub fn new() -> Result<Self, Error> {
 
-        let image = match FontTextureImage::new(128, 128) {
-            Some(image) => image,
-            None => { return Err(Error::FailedToCreateFontTextureImage("Failed to create font texture image".to_string())); }
+        let Some(image) = FontTextureImage::new(128, 128) else {
+            return Err(
+                 Error::FailedToCreateFontTextureImage("Failed to create font texture image".to_string())
+            );
         };
 
         Ok(Self {
@@ -108,23 +125,20 @@ impl FontTextureAtlas {
 
     pub fn get_texture(&mut self) -> Rc<Texture> {
 
-        match self.texture.as_ref() {
-            Some(texture) => { texture.clone() },
-            None => {
-                let texture = Rc::new(self.image.create_texture());
-                self.texture = Some(texture.clone());
-                texture
-            }
+        if let Some(texture) = self.texture.as_ref() {
+            texture.clone()
+        } else {
+            let texture = Rc::new(self.image.create_texture());
+            self.texture = Some(texture.clone());
+            texture
         }
+
     }
 
 
     pub fn get_char(&self, c: char) -> Option<CharParams> {
 
-        match self.char_map.get(&c) {
-            Some(params) => Some(*params),
-            None => None
-        }
+        self.char_map.get(&c).copied()
     }
 
 
@@ -137,18 +151,15 @@ impl FontTextureAtlas {
         let (metrics, bitmap) = font.rasterize(c, size as f32);
 
         // Add character, resize the underling image if necessary
-        let params = match self.image.add_char(&metrics, &bitmap) {
-            Some(params) => params,
-            None => {
+        let params = if let Some(params) = self.image.add_char(&metrics, &bitmap) { params } else {
 
-                self.resize_image(metrics.width as u32, metrics.height as u32);
-                match self.image.add_char(&metrics, &bitmap) {
-                    Some(params) => params,
-                    None => {
-                        return Err(
-                            Error::FailedToCreateFontTextureImage("Resizing did not work".to_string())
-                        );
-                    }
+            self.resize_image(metrics.width as u32, metrics.height as u32);
+            match self.image.add_char(&metrics, &bitmap) {
+                Some(params) => params,
+                None => {
+                    return Err(
+                        Error::FailedToCreateFontTextureImage("Resizing did not work".to_string())
+                    );
                 }
             }
         };
@@ -197,14 +208,11 @@ impl FontTextureImage {
 
     pub fn new(width: u32, height: u32) -> Option<Self> {
 
-        let image = match image::GrayImage::from_raw(
+        let image = image::GrayImage::from_raw(
             width,
             height,
             vec![0; (width * height) as usize]
-        ) {
-            Some(image) => image,
-            None => return None
-        };
+        )?;
 
         Some(Self {
             width,
@@ -244,7 +252,7 @@ impl FontTextureImage {
             let pos_x = self.pos_x;
             let pos_y = self.pos_y;
 
-            self.draw_char(pos_x, pos_y, &metrics, &bitmap);
+            self.draw_char(pos_x, pos_y, metrics, &bitmap);
 
             Some(CharParams {
                 x: pos_x,
@@ -262,7 +270,7 @@ impl FontTextureImage {
             let pos_x = self.pos_x;
             let pos_y = self.pos_y;
 
-            self.draw_char(pos_x, pos_y, &metrics, &bitmap);
+            self.draw_char(pos_x, pos_y, metrics, bitmap);
 
             Some(CharParams {
                 x: pos_x,
@@ -339,7 +347,7 @@ impl FontTextureImage {
         pos_x:   u32,
         pos_y:   u32,
         metrics: &fontdue::Metrics,
-        bitmap:  &Vec<u8>)
+        bitmap:  &[u8])
     {
         use image::Pixel;
 
@@ -351,7 +359,7 @@ impl FontTextureImage {
 
                 let s_index = (y * width + x) as usize;
 
-                let luma = image::Luma::<u8>::from_slice(&bitmap[s_index .. s_index + 1]);
+                let luma = image::Luma::<u8>::from_slice(&bitmap[s_index..=s_index]);
 
                 self.image.put_pixel(pos_x + x, pos_y + y, *luma);
             }

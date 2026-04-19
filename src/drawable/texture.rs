@@ -7,6 +7,7 @@ use image::GenericImageView;
 
 pub struct Texture {
 
+    #[allow(clippy::struct_field_names)]
     texture: wgpu::Texture,
     view:    wgpu::TextureView,
     sampler: wgpu::Sampler
@@ -53,6 +54,9 @@ impl Texture {
     }
 
 
+    /// # Errors
+    ///
+    /// Returns error if loading of image failed
     pub fn from_gray_image_bytes(
         bytes:  Vec<u8>,
         width:  u32,
@@ -60,15 +64,15 @@ impl Texture {
         label:  Option<&str>
     ) -> Result<Self, Error> {
 
-        let image = match image::GrayImage::from_raw(width, height, bytes) {
-            Some(image) => image,
-            None => { return Err(Error::FailedToLoadImage("Failed to load raw image data".to_string())); }
+        let Some(image) = image::GrayImage::from_raw(width, height, bytes) else {
+             return Err(Error::FailedToLoadImage("Failed to load raw image data".to_string()));
         };
 
         Ok(Self::from_gray_image(&image, width, height, label))
     }
 
 
+    #[must_use]
     pub fn from_gray_image(
         image:  &image::GrayImage,
         width:  u32,
@@ -200,7 +204,7 @@ impl Texture {
                 mip_level: 0,
                 origin:    wgpu::Origin3d::ZERO
             },
-            &image,
+            image,
             wgpu::TexelCopyBufferLayout {
                 offset:         0,
                 bytes_per_row:  Some(4 * width),
@@ -246,7 +250,7 @@ impl Texture {
                 mip_level: 0,
                 origin:    wgpu::Origin3d::ZERO
             },
-            &image,
+            image,
             wgpu::TexelCopyBufferLayout {
                 offset:         0,
                 bytes_per_row:  Some(width),

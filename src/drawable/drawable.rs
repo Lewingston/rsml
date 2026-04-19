@@ -123,7 +123,7 @@ impl Shape {
 
         let texture_pos = [0.0, 0.0];
 
-        let vertices = vec![
+        let vert = vec![
             Vertex { position: [ 0.0,  0.5, 0.0], texture_pos, color: Color{ r: 255, g:   0, b:   0, a: 255 }},
             Vertex { position: [-0.5, -0.5, 0.0], texture_pos, color: Color{ r:   0, g: 255, b:   0, a: 255 }},
             Vertex { position: [ 0.5, -0.5, 0.0], texture_pos, color: Color{ r:   0, g:   0, b: 255, a: 255 }}
@@ -137,9 +137,9 @@ impl Shape {
 
         Self {
             transform:          Transform::new(device),
-            vertex_buffer:      Self::create_vertex_buffer(&vertices),
+            vertex_buffer:      Self::create_vertex_buffer(&vert),
             index_buffer:       Self::create_index_buffer(device, indices),
-            vertices:           vertices,
+            vertices:           vert,
             index_count:        indices.len(),
             render_pipeline:    Renderer::get().get_default_color_render_pipeline(),
             texture:            None,
@@ -153,7 +153,7 @@ impl Shape {
 
         let color = Color{ r: 255, g: 0, b: 0, a: 255 };
 
-        let vertices = vec![
+        let vert = vec![
             Vertex { position: [-width / 2.0,  height / 2.0, 0.0], texture_pos: [0.0, 0.0], color },
             Vertex { position: [ width / 2.0,  height / 2.0, 0.0], texture_pos: [1.0, 0.0], color },
             Vertex { position: [ width / 2.0, -height / 2.0, 0.0], texture_pos: [1.0, 1.0], color },
@@ -169,9 +169,9 @@ impl Shape {
 
         Self {
             transform:          Transform::new(device),
-            vertex_buffer:      Self::create_vertex_buffer(&vertices),
+            vertex_buffer:      Self::create_vertex_buffer(&vert),
             index_buffer:       Self::create_index_buffer(device, indices),
-            vertices:           vertices,
+            vertices:           vert,
             index_count:        indices.len(),
             render_pipeline:    Renderer::get().get_default_color_render_pipeline(),
             texture:            None,
@@ -189,7 +189,7 @@ impl Shape {
 
         let color = Color{ r: 255, g: 255, b: 255, a: 255 };
 
-        let vertices = vec![
+        let vert = vec![
             Vertex { position: [-width / 2.0,  height / 2.0, 0.0], texture_pos: [ 0.0, 0.0 ], color },
             Vertex { position: [ width / 2.0,  height / 2.0, 0.0], texture_pos: [ 1.0, 0.0 ], color },
             Vertex { position: [ width / 2.0, -height / 2.0, 0.0], texture_pos: [ 1.0, 1.0 ], color },
@@ -211,9 +211,9 @@ impl Shape {
 
         Self {
             transform:          Transform::new(device),
-            vertex_buffer:      Self::create_vertex_buffer(&vertices),
+            vertex_buffer:      Self::create_vertex_buffer(&vert),
             index_buffer:       Self::create_index_buffer(device, indices),
-            vertices:           vertices,
+            vertices:           vert,
             index_count:        indices.len(),
             render_pipeline:    Renderer::get().get_default_texture_render_pipeline(),
             texture:            Some(texture),

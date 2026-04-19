@@ -29,6 +29,10 @@ pub struct Renderer {
 impl Renderer {
 
 
+    /// # Panics
+    ///
+    /// Will panic if application tries to access renderer before renderer is initialized.
+    /// Creating the first window will initialize the renderer.
     #[must_use]
     pub fn get() -> &'static Renderer {
 
