@@ -41,6 +41,38 @@ pub fn start<T: App + 'static>(app: T) -> Result<(), EventLoopError> {
 }
 
 
+/// # Errors
+///
+/// Propagates winit error if creating or start of event loop fails.
+pub fn start_single_window_app<T: Window + 'static>(window: T) -> Result<(), EventLoopError> {
+
+    start(SingleWindowApp{window: Some(window)})?;
+
+    Ok(())
+}
+
+
+struct SingleWindowApp<T: Window> {
+
+    window: Option<T>
+}
+
+
+impl<T: Window + 'static> App for SingleWindowApp<T> {
+
+    fn start(&mut self, context: &mut AppContext) {
+
+        let window = self.window.take();
+
+        let Some(window) = window else {
+            panic!("Where is the window?");
+        };
+
+        _ = context.create_window(window);
+    }
+}
+
+
 impl<T: App + 'static> ApplicationHandler<AppHandler<T>> for AppHandler<T> {
 
 
