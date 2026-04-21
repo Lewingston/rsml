@@ -7,7 +7,7 @@ use std::rc::Rc;
 
 pub struct Font {
 
-    font: fontdue::Font,
+    font:     fontdue::Font,
     font_map: std::collections::HashMap<u32, FontTextureAtlas>
 }
 
@@ -50,7 +50,7 @@ impl Font {
     /// Returns an error if character can not be retrieved from font.
     /// The reason is most likely an issue with the generation of the
     /// image for the font texture atlas.
-    pub fn get_char(&mut self, c: char, size: f32) -> Result<CharParams, Error> {
+    pub fn get_char(&mut self, c: char, size: f32) -> Result<&CharParams, Error> {
 
         let size = size as u32;
 
@@ -58,12 +58,7 @@ impl Font {
             FontTextureAtlas::new()?
         );
 
-        let params = match atlas.get_char(c) {
-            Some(params) => params,
-            None => {
-                atlas.insert_char(c, &self.font, size)?
-            }
-        };
+        let params = atlas.get_char_or_insert(c, &self.font, size)?;
 
         Ok(params)
     }
@@ -136,13 +131,28 @@ impl FontTextureAtlas {
     }
 
 
-    pub fn get_char(&self, c: char) -> Option<CharParams> {
+    pub fn get_char_or_insert(
+        &mut self,
+        c: char,
+        font: &fontdue::Font,
+        size: u32
+    ) -> Result<&CharParams, Error> {
 
-        self.char_map.get(&c).copied()
+        if self.char_map.contains_key(&c) {
+
+            let Some(params) = self.char_map.get(&c) else { panic!(); };
+            Ok(params)
+
+        } else {
+
+            let params = self.add_char_to_image(c, font, size)?;
+            let params = self.char_map.entry(c).or_insert(params);
+            Ok(params)
+        }
     }
 
 
-    pub fn insert_char(&mut self, c: char, font: &fontdue::Font, size: u32) -> Result<CharParams, Error> {
+    fn add_char_to_image(&mut self, c: char, font: &fontdue::Font, size: u32) -> Result<CharParams, Error> {
 
         // After inserting a new character the texture is no longer up to date
         self.texture = None;
@@ -163,9 +173,6 @@ impl FontTextureAtlas {
                 }
             }
         };
-
-        // Add new character to map
-        self.char_map.insert(c, params);
 
         Ok(params)
     }
@@ -244,7 +251,7 @@ impl FontTextureImage {
     pub fn add_char(
         &mut self,
         metrics: &fontdue::Metrics,
-        bitmap:  &Vec<u8>
+        bitmap:  &[u8]
     ) -> Option<CharParams> {
 
         if self.has_space_in_current_line(metrics.width, metrics.height) {
@@ -252,7 +259,7 @@ impl FontTextureImage {
             let pos_x = self.pos_x;
             let pos_y = self.pos_y;
 
-            self.draw_char(pos_x, pos_y, metrics, &bitmap);
+            self.draw_char(pos_x, pos_y, metrics, bitmap);
 
             Some(CharParams {
                 x: pos_x,
