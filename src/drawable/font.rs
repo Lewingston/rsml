@@ -89,6 +89,8 @@ pub struct CharParams {
     pub y: u32,
     pub w: u32,
     pub h: u32,
+
+    pub metrics: fontdue::Metrics
 }
 
 
@@ -161,10 +163,10 @@ impl FontTextureAtlas {
         let (metrics, bitmap) = font.rasterize(c, size as f32);
 
         // Add character, resize the underling image if necessary
-        let params = if let Some(params) = self.image.add_char(&metrics, &bitmap) { params } else {
+        let params = if let Some(params) = self.image.add_char(metrics, &bitmap) { params } else {
 
             self.resize_image(metrics.width as u32, metrics.height as u32);
-            match self.image.add_char(&metrics, &bitmap) {
+            match self.image.add_char(metrics, &bitmap) {
                 Some(params) => params,
                 None => {
                     return Err(
@@ -250,7 +252,7 @@ impl FontTextureImage {
     #[must_use]
     pub fn add_char(
         &mut self,
-        metrics: &fontdue::Metrics,
+        metrics: fontdue::Metrics,
         bitmap:  &[u8]
     ) -> Option<CharParams> {
 
@@ -259,13 +261,14 @@ impl FontTextureImage {
             let pos_x = self.pos_x;
             let pos_y = self.pos_y;
 
-            self.draw_char(pos_x, pos_y, metrics, bitmap);
+            self.draw_char(pos_x, pos_y, &metrics, bitmap);
 
             Some(CharParams {
                 x: pos_x,
                 y: pos_y,
                 w: metrics.width as u32,
-                h: metrics.height as u32
+                h: metrics.height as u32,
+                metrics
             })
         }
         else if self.has_space_in_new_line(metrics.width, metrics.height) {
@@ -277,13 +280,14 @@ impl FontTextureImage {
             let pos_x = self.pos_x;
             let pos_y = self.pos_y;
 
-            self.draw_char(pos_x, pos_y, metrics, bitmap);
+            self.draw_char(pos_x, pos_y, &metrics, bitmap);
 
             Some(CharParams {
                 x: pos_x,
                 y: pos_y,
                 w: metrics.width as u32,
-                h: metrics.height as u32
+                h: metrics.height as u32,
+                metrics
             })
         }
         else {
@@ -318,10 +322,11 @@ impl FontTextureImage {
         }
 
         let new_param = CharParams {
-            x: self.pos_x,
-            y: self.pos_y,
-            w: params.w,
-            h: params.h
+            x:       self.pos_x,
+            y:       self.pos_y,
+            w:       params.w,
+            h:       params.h,
+            metrics: params.metrics
         };
 
         self.pos_x += params.w;
