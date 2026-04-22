@@ -104,7 +104,6 @@ pub struct Shape {
     render_pipeline: Arc<wgpu::RenderPipeline>,
 
     texture: Option<Rc<Texture>>,
-    texture_bind_group: Option<wgpu::BindGroup>
 }
 
 
@@ -143,7 +142,6 @@ impl Shape {
             index_count:        indices.len(),
             render_pipeline:    Renderer::get().get_default_color_render_pipeline(),
             texture:            None,
-            texture_bind_group: None
         }
     }
 
@@ -175,7 +173,6 @@ impl Shape {
             index_count:        indices.len(),
             render_pipeline:    Renderer::get().get_default_color_render_pipeline(),
             texture:            None,
-            texture_bind_group: None
         }
     }
 
@@ -203,12 +200,6 @@ impl Shape {
 
         let device = Renderer::get_device();
 
-        let texture_bind_group = Self::create_texture_bind_group(
-            device,
-            texture.get_view(),
-            texture.get_sampler()
-        );
-
         Self {
             transform:          Transform::new(device),
             vertex_buffer:      Self::create_vertex_buffer(&vert),
@@ -217,7 +208,6 @@ impl Shape {
             index_count:        indices.len(),
             render_pipeline:    Renderer::get().get_default_texture_render_pipeline(),
             texture:            Some(texture),
-            texture_bind_group: Some(texture_bind_group)
         }
     }
 
@@ -235,12 +225,7 @@ impl Shape {
 
     pub fn set_texture(&mut self, texture: Rc<Texture>) {
 
-        self.texture_bind_group = Some(Self::create_texture_bind_group(
-            Renderer::get_device(),
-            texture.get_view(),
-            texture.get_sampler()
-        ));
-        self.texture = Some(texture);
+        self.texture         = Some(texture);
         self.render_pipeline = Renderer::get().get_default_texture_render_pipeline();
     }
 
@@ -264,31 +249,6 @@ impl Shape {
                 label:    Some("index buffer"),
                 contents: bytemuck::cast_slice(indices),
                 usage:    wgpu::BufferUsages::INDEX
-            }
-        )
-    }
-
-
-    fn create_texture_bind_group(
-        device:          &wgpu::Device,
-        texture_view:    &wgpu::TextureView,
-        texture_sampler: &wgpu::Sampler
-    ) -> wgpu::BindGroup {
-
-        device.create_bind_group(
-            &wgpu::BindGroupDescriptor {
-                layout: &Texture::get_default_bind_group_layout(device),
-                entries: &[
-                    wgpu::BindGroupEntry {
-                        binding:  0,
-                        resource: wgpu::BindingResource::TextureView(texture_view)
-                    },
-                    wgpu::BindGroupEntry {
-                        binding:  1,
-                        resource: wgpu::BindingResource::Sampler(texture_sampler)
-                    }
-                ],
-                label: Some("texture bind group")
             }
         )
     }
@@ -414,7 +374,12 @@ impl Drawable for Shape {
 
         pass.set_bind_group(1, camera.borrow().get_bind_group(), &[]);
 
-        pass.set_bind_group(2, &self.texture_bind_group, &[]);
+        match &self.texture {
+            Some(texture) => {
+                pass.set_bind_group(2, texture.get_bind_group(), &[]);
+            }
+            None => {}
+        };
 
         pass.set_vertex_buffer(0, self.vertex_buffer.slice(..));
 

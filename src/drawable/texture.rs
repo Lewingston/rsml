@@ -8,9 +8,10 @@ use image::GenericImageView;
 pub struct Texture {
 
     #[allow(clippy::struct_field_names)]
-    texture: wgpu::Texture,
-    view:    wgpu::TextureView,
-    sampler: wgpu::Sampler
+    texture:    wgpu::Texture,
+    view:       wgpu::TextureView,
+    sampler:    wgpu::Sampler,
+    bind_group: Option<wgpu::BindGroup>
 }
 
 
@@ -27,6 +28,10 @@ impl Texture {
 
     #[must_use]
     pub fn get_sampler(&self) -> &wgpu::Sampler { &self.sampler }
+
+
+    #[must_use]
+    pub fn get_bind_group(&self) -> &Option<wgpu::BindGroup> { &self.bind_group }
 
 
     #[must_use]
@@ -80,15 +85,12 @@ impl Texture {
         label:  Option<&str>
     ) -> Self {
 
-        let texture = Self::create_texture_from_gray_image(image, width, height, label);
-        let view    = texture.create_view(&wgpu::TextureViewDescriptor::default());
-        let sampler = Self::create_sampler(Renderer::get_device());
+        let texture    = Self::create_texture_from_gray_image(image, width, height, label);
+        let view       = texture.create_view(&wgpu::TextureViewDescriptor::default());
+        let sampler    = Self::create_sampler(Renderer::get_device());
+        let bind_group = Some(Self::create_bind_group(&view, &sampler));
 
-        Self {
-            texture,
-            view,
-            sampler
-        }
+        Self { texture, view, sampler, bind_group }
     }
 
 
@@ -98,13 +100,12 @@ impl Texture {
         label: Option<&str>
     ) -> Self {
 
-        let texture = Self::create_texture_from_dynamic_image(image, label);
+        let texture    = Self::create_texture_from_dynamic_image(image, label);
+        let view       = texture.create_view(&wgpu::TextureViewDescriptor::default());
+        let sampler    = Self::create_sampler(Renderer::get_device());
+        let bind_group = Some(Self::create_bind_group(&view, &sampler));
 
-        let view = texture.create_view(&wgpu::TextureViewDescriptor::default());
-
-        let sampler = Self::create_sampler(Renderer::get_device());
-
-        Self { texture, view, sampler }
+        Self { texture, view, sampler, bind_group }
     }
 
 
@@ -150,7 +151,9 @@ impl Texture {
             }
         );
 
-        Self { texture, view, sampler }
+        let bind_group: Option<wgpu::BindGroup> = None;
+
+        Self { texture, view, sampler, bind_group }
     }
 
 
@@ -305,5 +308,30 @@ impl Texture {
             ],
             label: Some("Default texture bind group layout")
         })
+    }
+
+
+    #[must_use]
+    fn create_bind_group(
+        view:    &wgpu::TextureView,
+        sampler: &wgpu::Sampler)
+    -> wgpu::BindGroup {
+
+        Renderer::get_device().create_bind_group(
+            &wgpu::BindGroupDescriptor {
+                layout:  &Texture::get_default_bind_group_layout(Renderer::get_device()),
+                entries: &[
+                    wgpu::BindGroupEntry {
+                        binding:  0,
+                        resource: wgpu::BindingResource::TextureView(view)
+                    },
+                    wgpu::BindGroupEntry {
+                        binding:  1,
+                        resource: wgpu::BindingResource::Sampler(sampler)
+                    }
+                ],
+                label: Some("texture bind group")
+            }
+        )
     }
 }
