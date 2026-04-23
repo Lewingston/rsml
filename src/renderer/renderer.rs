@@ -16,10 +16,11 @@ static RENDERER_INSTANCE: std::sync::OnceLock<Renderer> = std::sync::OnceLock::n
 
 pub struct Renderer {
 
-    wgpu_instance: wgpu::Instance,
-    wgpu_adapter:  wgpu::Adapter,
-    device:        wgpu::Device,
-    queue:         wgpu::Queue,
+    wgpu_instance:  wgpu::Instance,
+    wgpu_adapter:   wgpu::Adapter,
+    device:         wgpu::Device,
+    queue:          wgpu::Queue,
+    surface_config: wgpu::SurfaceConfiguration,
 
     default_color_render_pipeline:   Arc<wgpu::RenderPipeline>,
     default_texture_render_pipeline: Arc<wgpu::RenderPipeline>,
@@ -53,6 +54,13 @@ impl Renderer {
 
     #[must_use]
     pub fn get_queue() -> &'static wgpu::Queue { &Renderer::get().queue }
+
+
+    #[must_use]
+    pub fn get_default_surface_config() -> &'static wgpu::SurfaceConfiguration {
+
+        &Renderer::get().surface_config
+    }
 
 
     #[must_use]
@@ -114,6 +122,7 @@ impl Renderer {
             wgpu_adapter,
             device,
             queue,
+            surface_config,
             default_color_render_pipeline,
             default_texture_render_pipeline
         });
@@ -245,9 +254,9 @@ fn create_pipeline(
             compilation_options: wgpu::PipelineCompilationOptions::default()
         },
         fragment: Some(wgpu::FragmentState {
-            module: shader,
+            module:      shader,
             entry_point: Some("fs_main"),
-            targets: &[Some(wgpu::ColorTargetState {
+            targets:     &[Some(wgpu::ColorTargetState {
                 format:     surface_config.format,
                 blend:      Some(wgpu::BlendState::REPLACE),
                 write_mask: wgpu::ColorWrites::ALL
@@ -263,7 +272,7 @@ fn create_pipeline(
             unclipped_depth:    false,
             conservative:       false,
         },
-        depth_stencil:           Some(wgpu::DepthStencilState {
+        depth_stencil: Some(wgpu::DepthStencilState {
             format:              wgpu::TextureFormat::Depth32Float,
             depth_write_enabled: Some(true),
             depth_compare:       Some(wgpu::CompareFunction::Less),
@@ -317,7 +326,7 @@ fn create_default_color_render_pipeline(
 fn create_default_texture_render_pipeline(
     device: &wgpu::Device,
     surface_config: &wgpu::SurfaceConfiguration
-) ->wgpu::RenderPipeline {
+) -> wgpu::RenderPipeline {
 
     let shader = device.create_shader_module(wgpu::ShaderModuleDescriptor {
         label: Some("Default texture shader"),
