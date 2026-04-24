@@ -1,5 +1,6 @@
 
 use rsml::drawable::drawable::Drawable;
+use rsml::drawable::drawable::Color;
 
 use std::rc::Rc;
 use std::cell::RefCell;
@@ -30,13 +31,16 @@ impl Scene {
 
     fn new() -> Option<Self> {
 
-        let font_size = 80.0;
+        let font_size = 60.0;
 
         let Ok(font) = rsml::Font::from_file("./comic.ttf") else { return None };
 
         let font = Rc::new(RefCell::new(font));
 
-        let text = rsml::Text::new("TEST Text\nWith multi line\nbut smoething is off\n1234567\n#?ß!", font.clone(), font_size);
+        let text = "This is a test text.\nThis is the second line.\nSome thing lol!\n1234567890\n?$#%&X§";
+
+        let text = rsml::Text::new(text, font.clone(), font_size);
+        text.set_color(Color { r: 0, g: 0, b: 255, a: 255 });
 
         let Ok(texture) = font.borrow_mut().get_texture(font_size) else { return None; };
 

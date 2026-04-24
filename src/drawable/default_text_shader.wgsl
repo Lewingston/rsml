@@ -62,6 +62,9 @@ var t_diffuse: texture_2d<f32>;
 @group(2) @binding(1)
 var s_diffuse: sampler;
 
+@group(3) @binding(0)
+var<uniform> text_color: vec4<f32>;
+
 @fragment
 fn fs_main(in: VertexOutput) -> @location(0) vec4<f32> {
 
@@ -70,7 +73,9 @@ fn fs_main(in: VertexOutput) -> @location(0) vec4<f32> {
     let tex_x = in.tex_coords.x / f32(tex_size.x);
     let tex_y = in.tex_coords.y / f32(tex_size.y);
 
-    var tex_cords = vec2<f32>(tex_x, tex_y);
+    let tex_cords = vec2<f32>(tex_x, tex_y);
 
-    return textureSample(t_diffuse, s_diffuse, tex_cords);
+    let color = textureSample(t_diffuse, s_diffuse, tex_cords).x;
+
+    return text_color * color;
 }

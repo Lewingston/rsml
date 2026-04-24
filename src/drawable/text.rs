@@ -4,8 +4,10 @@ use wgpu::util::DeviceExt;
 use crate::renderer::renderer::Renderer;
 use crate::renderer::render_target::RenderTarget;
 use crate::renderer::uniform::MatrixUniform;
+use crate::renderer::uniform::ColorUniform;
 use crate::drawable::drawable::Drawable;
 use crate::drawable::drawable::Transform;
+use crate::drawable::drawable::Color;
 use crate::drawable::texture::Texture;
 use crate::drawable::font::Font;
 use crate::drawable::font::CharParams;
@@ -29,7 +31,9 @@ pub struct Text {
 
     character_sprites: Vec<CharSpriteInstance>,
 
-    instance_buffer: wgpu::Buffer
+    instance_buffer: wgpu::Buffer,
+
+    color_uniform: ColorUniform
 }
 
 
@@ -70,14 +74,23 @@ impl Text {
             }
         );
 
+        let color_uniform = ColorUniform::new(Color { r: 0, g: 0, b: 0, a: 255 });
+
         Self {
             transform: Transform::new(Renderer::get_device()),
             font,
             font_size,
             render_pipeline:   get_default_text_render_pipeline(),
             character_sprites: characters,
-            instance_buffer:   instance_buffer
+            instance_buffer:   instance_buffer,
+            color_uniform
         }
+    }
+
+
+    pub fn set_color(&self, color: Color) {
+
+        self.color_uniform.update(color);
     }
 
 
@@ -156,6 +169,8 @@ impl Drawable for Text {
 
         pass.set_bind_group(2, texture.get_bind_group(), &[]);
 
+        pass.set_bind_group(3, self.color_uniform.get_bind_group(), &[]);
+
         pass.set_vertex_buffer(0, self.instance_buffer.slice(..));
 
         pass.draw(0..6, 0..self.character_sprites.len() as _);
@@ -175,6 +190,7 @@ fn create_default_text_render_pipeline() -> wgpu::RenderPipeline {
 
     let matrix_layout  = MatrixUniform::get_bind_group_layout(device);
     let texture_layout = Texture::get_default_bind_group_layout(device);
+    let color_layout   = ColorUniform::get_bind_group_layout(device);
 
     let pipeline_layout =
         device.create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {
@@ -183,6 +199,7 @@ fn create_default_text_render_pipeline() -> wgpu::RenderPipeline {
                 Some(&matrix_layout),  // Transformation matrix
                 Some(&matrix_layout),  // Camera matrix
                 Some(&texture_layout), // Texture
+                Some(&color_layout),   // Text color
             ],
             immediate_size: 0
         });
@@ -223,7 +240,7 @@ fn create_default_text_render_pipeline() -> wgpu::RenderPipeline {
             entry_point: Some("fs_main"),
             targets:     &[Some(wgpu::ColorTargetState {
                 format:     Renderer::get_default_surface_config().format,
-                blend:      Some(wgpu::BlendState::REPLACE),
+                blend:      Some(wgpu::BlendState::ALPHA_BLENDING),
                 write_mask: wgpu::ColorWrites::ALL
             })],
             compilation_options: wgpu::PipelineCompilationOptions::default()
