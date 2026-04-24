@@ -79,6 +79,10 @@ impl Font {
 
         Ok(atlas.get_texture())
     }
+
+
+    #[must_use]
+    pub fn get_fontdue_font(&self) -> &fontdue::Font { &self.font }
 }
 
 
@@ -90,7 +94,7 @@ pub struct CharParams {
     pub w: u32,
     pub h: u32,
 
-    pub metrics: fontdue::Metrics
+    //pub metrics: fontdue::Metrics
 }
 
 
@@ -268,7 +272,7 @@ impl FontTextureImage {
                 y: pos_y,
                 w: metrics.width as u32,
                 h: metrics.height as u32,
-                metrics
+                //metrics
             })
         }
         else if self.has_space_in_new_line(metrics.width, metrics.height) {
@@ -287,7 +291,7 @@ impl FontTextureImage {
                 y: pos_y,
                 w: metrics.width as u32,
                 h: metrics.height as u32,
-                metrics
+                //metrics
             })
         }
         else {
@@ -326,7 +330,7 @@ impl FontTextureImage {
             y:       self.pos_y,
             w:       params.w,
             h:       params.h,
-            metrics: params.metrics
+            //metrics: params.metrics
         };
 
         self.pos_x += params.w;

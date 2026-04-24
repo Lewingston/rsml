@@ -21,7 +21,8 @@ impl rsml::App for MyApp {
 
 struct Scene {
 
-    text: rsml::Text
+    text:   rsml::Text,
+    sprite: rsml::Shape
 }
 
 
@@ -29,29 +30,35 @@ impl Scene {
 
     fn new() -> Option<Self> {
 
-        let Ok(mut font) = rsml::Font::from_file("./comic.ttf") else { return None };
+        let font_size = 80.0;
 
-        _ = font.get_char('X', 40.0);
-        _ = font.get_char('Y', 40.0);
-        _ = font.get_char('Z', 40.0);
-        _ = font.get_char('1', 40.0);
-        _ = font.get_char('2', 40.0);
-        _ = font.get_char('ß', 40.0);
-        _ = font.get_char('a', 40.0);
-        _ = font.get_char('c', 40.0);
-        _ = font.get_char('A', 40.0);
+        let Ok(font) = rsml::Font::from_file("./comic.ttf") else { return None };
 
         let font = Rc::new(RefCell::new(font));
 
-        let text = rsml::Text::new("TEST".to_string(), font, 40.0);
+        let text = rsml::Text::new("TEST Text\nWith multi line\nbut smoething is off\n1234567\n#?ß!", font.clone(), font_size);
 
-        Some(Self {text})
+        let Ok(texture) = font.borrow_mut().get_texture(font_size) else { return None; };
+
+        let mut sprite = rsml::Shape::create_sprite(
+            texture.get_width() as f32,
+            texture.get_height() as f32,
+            texture
+        );
+
+        sprite.get_transform().translate(cgmath::Vector3::<f32>{ x: -200.0, y: 150.0, z: 0.0 });
+
+        Some(Self {
+            text,
+            sprite
+        })
     }
 
 
     fn draw(&self, render_target: &mut rsml::RenderTarget) {
 
         self.text.draw(render_target);
+        self.sprite.draw(render_target);
     }
 }
 

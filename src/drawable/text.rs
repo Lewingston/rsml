@@ -8,10 +8,12 @@ use crate::drawable::drawable::Drawable;
 use crate::drawable::drawable::Transform;
 use crate::drawable::texture::Texture;
 use crate::drawable::font::Font;
+use crate::drawable::font::CharParams;
 
 use std::sync::Arc;
 use std::rc::Rc;
 use std::cell::RefCell;
+use std::collections::HashSet;
 
 
 static TEXT_RENDER_PIPELINE: std::sync::OnceLock<Arc<wgpu::RenderPipeline>> = std::sync::OnceLock::new();
@@ -20,7 +22,6 @@ static TEXT_RENDER_PIPELINE: std::sync::OnceLock<Arc<wgpu::RenderPipeline>> = st
 pub struct Text {
 
     transform: Transform,
-    text:      String,
     font:      Rc<RefCell<Font>>,
     font_size: f32,
 
@@ -57,21 +58,9 @@ impl Text {
     }
 
 
-    pub fn new(text: String, font: Rc<RefCell<Font>>, font_size: f32) -> Self {
+    pub fn new(text: &str, font: Rc<RefCell<Font>>, font_size: f32) -> Self {
 
-        let character = CharSpriteInstance {
-            pos_x:  0.0,
-            pos_y:  0.0,
-            width:  80.0,
-            height: 80.0,
-
-            tex_x: 0.0,
-            tex_y: 0.0,
-            tex_w: 0.0,
-            tex_h: 0.0
-        };
-
-        let characters: Vec<CharSpriteInstance> = [character].to_vec();
+        let characters = Self::calculate_layout(text, &mut *font.borrow_mut(), font_size);
 
         let instance_buffer = Renderer::get_device().create_buffer_init(
             &wgpu::util::BufferInitDescriptor {
@@ -83,13 +72,65 @@ impl Text {
 
         Self {
             transform: Transform::new(Renderer::get_device()),
-            text,
             font,
             font_size,
             render_pipeline:   get_default_text_render_pipeline(),
             character_sprites: characters,
             instance_buffer:   instance_buffer
         }
+    }
+
+
+    fn calculate_layout(
+        text:      &str,
+        font:      &mut Font,
+        font_size: f32
+    ) -> Vec<CharSpriteInstance> {
+
+        use fontdue::layout::{
+            Layout,
+            CoordinateSystem,
+            LayoutSettings,
+            TextStyle
+        };
+
+        let mut layout : Layout = Layout::new(CoordinateSystem::PositiveYUp);
+        layout.reset(&LayoutSettings {
+            max_width:  None,
+            max_height: None,
+            ..LayoutSettings::default()
+        });
+
+        layout.append(
+            &[font.get_fontdue_font()],
+            &TextStyle::new(text, font_size, 0)
+        );
+
+        let unique_chars: HashSet<char> = text.chars().collect();
+        for c in unique_chars {
+            _ = font.get_char(c, font_size);
+        }
+
+        layout.glyphs().iter().map(|glyph| {
+
+            let char_params = match font.get_char(glyph.parent, font_size) {
+                Ok(params) => { params }
+                Err(_) => { &CharParams { x: 0, y: 0, w: 0, h: 0 } }
+            };
+
+            CharSpriteInstance {
+                pos_x:  glyph.x,
+                pos_y:  glyph.y,
+                width:  glyph.width  as f32,
+                height: glyph.height as f32,
+
+                tex_x:  char_params.x as f32,
+                tex_y:  char_params.y as f32,
+                tex_w:  char_params.w as f32,
+                tex_h:  char_params.h as f32
+            }
+
+        }).collect()
     }
 }
 
@@ -161,7 +202,7 @@ fn create_default_text_render_pipeline() -> wgpu::RenderPipeline {
                 format:          wgpu::VertexFormat::Float32x4
             },
             wgpu::VertexAttribute {
-                offset:          0,
+                offset:          std::mem::size_of::<[f32; 4]>() as wgpu::BufferAddress,
                 shader_location: 1,
                 format:          wgpu::VertexFormat::Float32x4
             }
