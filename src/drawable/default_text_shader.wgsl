@@ -21,7 +21,7 @@ struct VertexOutput {
 
 struct InstanceInput {
     @location(0) sprite: vec4<f32>,
-    @location(1) texture: vec4<f32>
+    @location(1) texture: vec4<u32>
 };
 
 
@@ -31,25 +31,25 @@ fn vs_main(
     instance: InstanceInput
 ) -> VertexOutput {
 
-    let x_arr : array<f32, 6> = array<f32, 6>(0, 1, 1, 0, 1, 0);
-    let y_arr : array<f32, 6> = array<f32, 6>(0, 0, 1, 0, 1, 1);
+    let x_arr : array<u32, 6> = array<u32, 6>(0, 1, 1, 0, 1, 0);
+    let y_arr : array<u32, 6> = array<u32, 6>(0, 0, 1, 0, 1, 1);
 
-    let x = x_arr[in_vertex_index];
-    let y = y_arr[in_vertex_index];
+    let x : u32 = x_arr[in_vertex_index];
+    let y : u32 = y_arr[in_vertex_index];
 
-    let pos_x = instance.sprite.x + (x - 0.5) * instance.sprite.z;
-    let pos_y = instance.sprite.y + (y - 0.5) * instance.sprite.w;
+    let pos_x = instance.sprite.x + f32(x) * instance.sprite.z;
+    let pos_y = instance.sprite.y + f32(y) * instance.sprite.w;
 
-    let tex_x = instance.texture.x;
-    let tex_y = instance.texture.y;
+    let tex_x : u32 = instance.texture.x;
+    let tex_y : u32 = instance.texture.y;
 
-    let tex_w = instance.texture.z;
-    let tex_h = instance.texture.w;
+    let tex_w : u32 = instance.texture.z;
+    let tex_h : u32 = instance.texture.w;
 
     var out: VertexOutput;
     out.clip_position = camera.view_proj * transform.matrix * vec4<f32>(pos_x, pos_y, 0.0, 1.0);
 
-    out.tex_coords = vec2<f32>(tex_x + (x * tex_w), tex_y + ((1 - y) * tex_h));
+    out.tex_coords = vec2<f32>(f32(tex_x + (x * tex_w)), f32(tex_y + ((1 - y) * tex_h)));
 
     return out;
 }
