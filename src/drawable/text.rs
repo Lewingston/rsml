@@ -42,10 +42,10 @@ struct CharSpriteInstance {
     pub width:  f32,
     pub height: f32,
 
-    pub tex_x:  f32,
-    pub tex_y:  f32,
-    pub tex_w:  f32,
-    pub tex_h:  f32
+    pub tex_x:  u32,
+    pub tex_y:  u32,
+    pub tex_w:  u32,
+    pub tex_h:  u32
 }
 
 
@@ -124,10 +124,10 @@ impl Text {
                 width:  glyph.width  as f32,
                 height: glyph.height as f32,
 
-                tex_x:  char_params.x as f32,
-                tex_y:  char_params.y as f32,
-                tex_w:  char_params.w as f32,
-                tex_h:  char_params.h as f32
+                tex_x:  char_params.x,
+                tex_y:  char_params.y,
+                tex_w:  char_params.w,
+                tex_h:  char_params.h
             }
 
         }).collect()
@@ -204,7 +204,7 @@ fn create_default_text_render_pipeline() -> wgpu::RenderPipeline {
             wgpu::VertexAttribute {
                 offset:          std::mem::size_of::<[f32; 4]>() as wgpu::BufferAddress,
                 shader_location: 1,
-                format:          wgpu::VertexFormat::Float32x4
+                format:          wgpu::VertexFormat::Uint32x4
             }
         ]
     };
