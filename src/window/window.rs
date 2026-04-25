@@ -11,6 +11,11 @@ use crate::renderer::camera::Camera;
 
 use crate::drawable::texture::Texture;
 
+#[cfg(target_arch = "wasm32")]
+use wasm_bindgen::prelude::*;
+#[cfg(target_arch = "wasm32")]
+use winit::platform::web::WindowAttributesExtWebSys;
+
 use std::sync::Arc;
 use std::rc::Rc;
 use std::cell::RefCell;
@@ -48,16 +53,17 @@ pub struct WindowContext<'window_handler> {
 impl WindowHandler {
 
 
+    #[cfg(not(target_arch = "wasm32"))]
     pub fn new<T: Window + 'static>(
         window:     T,
-        event_loop: &ActiveEventLoop,
+        event_loop: &ActiveEventLoop
     ) -> Result<Self, Error> {
 
-        let winit_window = create_winit_window(event_loop)?;
+        let winit_window = WindowHandler::create_winit_window(event_loop)?;
 
         let surface = Renderer::create_window_surface(winit_window.clone())?;
 
-        let surface_config = create_surface_config(&winit_window, &surface, Renderer::get());
+        let surface_config = create_surface_config(&winit_window, &surface);
 
         let camera = Rc::new(
             RefCell::new(
@@ -82,6 +88,41 @@ impl WindowHandler {
         window_handler.start();
 
         Ok(window_handler)
+    }
+
+
+    #[cfg(target_arch = "wasm32")]
+    pub fn new(
+        window: Box<dyn Window>,
+        winit_window: Arc<WinitWindow>,
+        surface: wgpu::Surface<'static>
+    ) -> Self {
+
+        let surface_config = create_surface_config(&winit_window, &surface);
+
+        let camera = Rc::new(
+            RefCell::new(
+                Camera::new(
+                    surface_config.width,
+                    surface_config.height
+                )
+            )
+        );
+
+        let depth_texture = Texture::create_depth_texture(&surface_config);
+
+        let mut window_handler = Self {
+            window,
+            winit_window,
+            surface,
+            surface_config,
+            camera,
+            depth_texture
+        };
+
+        window_handler.start();
+
+        window_handler
     }
 
 
@@ -118,7 +159,7 @@ impl WindowHandler {
     ) {
         self.surface_config.width  = width;
         self.surface_config.height = height;
-        self.surface.configure(Renderer::get_device(), &self.surface_config);
+        self.surface.configure(Renderer::get().get_device(), &self.surface_config);
         self.depth_texture = Texture::create_depth_texture(&self.surface_config);
 
         let mut cam_params = self.camera.borrow().get_parameters().clone();
@@ -136,7 +177,7 @@ impl WindowHandler {
 
             wgpu::CurrentSurfaceTexture::Success(surface_texture) => surface_texture,
             wgpu::CurrentSurfaceTexture::Suboptimal(surface_texture) => {
-                self.surface.configure(Renderer::get_device(), &self.surface_config);
+                self.surface.configure(Renderer::get().get_device(), &self.surface_config);
                 surface_texture
             }
             wgpu::CurrentSurfaceTexture::Timeout |
@@ -146,7 +187,7 @@ impl WindowHandler {
                 return;
             }
             wgpu::CurrentSurfaceTexture::Outdated => {
-                self.surface.configure(Renderer::get_device(), &self.surface_config);
+                self.surface.configure(Renderer::get().get_device(), &self.surface_config);
                 return;
             }
             wgpu::CurrentSurfaceTexture::Lost => {
@@ -157,7 +198,7 @@ impl WindowHandler {
 
         let view = output.texture.create_view(&wgpu::TextureViewDescriptor::default());
 
-        let mut encoder = Renderer::get_device().create_command_encoder(&wgpu::CommandEncoderDescriptor {
+        let mut encoder = Renderer::get().get_device().create_command_encoder(&wgpu::CommandEncoderDescriptor {
             label: Some("Render Encoder")
         });
 
@@ -196,7 +237,7 @@ impl WindowHandler {
             self.window.draw(&mut render_target);
         }
 
-        Renderer::get_queue().submit(std::iter::once(encoder.finish()));
+        Renderer::get().get_queue().submit(std::iter::once(encoder.finish()));
         output.present();
     }
 
@@ -204,28 +245,44 @@ impl WindowHandler {
     pub fn get_window_id(&self) -> winit::window::WindowId {
         self.winit_window.id()
     }
-}
 
 
-fn create_winit_window(event_loop: &ActiveEventLoop) -> Result<Arc<WinitWindow>, Error> {
+    pub fn create_winit_window(event_loop: &ActiveEventLoop) -> Result<Arc<WinitWindow>, Error> {
 
-    let mut window_attributes = WinitWindow::default_attributes();
-    window_attributes.visible = false;
+        let mut window_attributes = WinitWindow::default_attributes();
+        window_attributes.visible = false;
 
-    match event_loop.create_window(window_attributes) {
-        Ok(window) => Ok(Arc::new(window)),
-        Err(err)   => Err(Error::FailedToCreateWindow(err.to_string()))
+        #[cfg(target_arch = "wasm32")]
+        {
+            const CANVAS_ID: &str = "canvas";
+
+            let window = wgpu::web_sys::window()
+                .ok_or(Error::FailedToAcquireHtmlElement("window".to_string()))?;
+
+            let document = window.document()
+                .ok_or(Error::FailedToAcquireHtmlElement("document".to_string()))?;
+
+            let canvas = document.get_element_by_id(CANVAS_ID)
+                .ok_or(Error::FailedToAcquireHtmlElement("canvas".to_string()))?;
+
+            let html_canvas_element = canvas.unchecked_into();
+            window_attributes = window_attributes.with_canvas(Some(html_canvas_element));
+        }
+
+        match event_loop.create_window(window_attributes) {
+            Ok(window) => Ok(Arc::new(window)),
+            Err(err)   => Err(Error::FailedToCreateWindow(err.to_string()))
+        }
     }
 }
 
 
 fn create_surface_config(
     winit_window: &WinitWindow,
-    surface:      &wgpu::Surface,
-    renderer:     &Renderer
+    surface:      &wgpu::Surface
 ) -> wgpu::SurfaceConfiguration {
 
-    let mut surface_config = renderer.get_surface_config(surface);
+    let mut surface_config = Renderer::get().get_surface_config(surface);
     surface_config.width   = winit_window.inner_size().width;
     surface_config.height  = winit_window.inner_size().height;
 

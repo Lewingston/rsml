@@ -5,11 +5,23 @@ use thiserror::Error;
 #[derive(Debug, Error)]
 pub enum Error {
 
+    #[error("Failed to init console logger: {0}")]
+    FailedToInitConsoleLogger(String),
+
+    #[error("Failed to create event loop: {0}")]
+    FailedToCreateEventLoop(String),
+
+    #[error("Failed to start app: {0}")]
+    FailedToStartApp(String),
+
     #[error("Unable to create renderer: {0}")]
     FailedToCreateRenderer(String),
 
     #[error("Failed to create window: {0}")]
     FailedToCreateWindow(String),
+
+    #[error("Failed to acquire HTML element {0}")]
+    FailedToAcquireHtmlElement(String),
 
     #[error("Failed to create window surface: {0}")]
     FailedToCreateWindowSurface(String),
@@ -28,4 +40,7 @@ pub enum Error {
 
     #[error("Failed to create font texture image: {0}")]
     FailedToCreateFontTextureImage(String),
+
+    #[error("Create window surface with async web handler")]
+    CreateSurfaceWithAsyncWebHandler()
 }

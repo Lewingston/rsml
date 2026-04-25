@@ -63,7 +63,7 @@ impl Camera {
 
         let parameters = CameraParameters::default(width, height);
 
-        let uniform = MatrixUniform::new(Renderer::get_device(), parameters.get_matrix());
+        let uniform = MatrixUniform::new(Renderer::get().get_device(), parameters.get_matrix());
 
         Self {
             parameters,

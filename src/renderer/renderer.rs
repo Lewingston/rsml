@@ -1,6 +1,9 @@
 
 use winit::window::Window as WinitWindow;
 
+#[cfg(target_arch = "wasm32")]
+use winit::event_loop::EventLoopProxy;
+
 use crate::error::Error;
 
 use crate::drawable::drawable::Vertex;
@@ -8,10 +11,18 @@ use crate::drawable::texture::Texture;
 
 use crate::renderer::uniform::MatrixUniform;
 
+#[cfg(target_arch = "wasm32")]
+use crate::app::RsmlAppEvent;
+#[cfg(target_arch = "wasm32")]
+use crate::window::window::Window;
+
 use std::sync::Arc;
 
+use std::cell::OnceCell;
 
-static RENDERER_INSTANCE: std::sync::OnceLock<Renderer> = std::sync::OnceLock::new();
+thread_local! {
+    static RENDERER_INSTANCE: OnceCell<Arc<Renderer>> = OnceCell::new();
+}
 
 
 pub struct Renderer {
@@ -35,31 +46,26 @@ impl Renderer {
     /// Will panic if application tries to access renderer before renderer is initialized.
     /// Creating the first window will initialize the renderer.
     #[must_use]
-    pub fn get() -> &'static Renderer {
+    pub fn get() -> Arc<Renderer> {
 
-        match RENDERER_INSTANCE.get() {
-            Some(renderer) => {
-                renderer
-            }
-            None => {
-                panic!("Renderer not initialized. Make sure a surface was created before accessing the renderer.");
-            }
-        }
+        RENDERER_INSTANCE.with(|r| {
+            r.get().expect("Renderer not initialized!").clone()
+        })
     }
 
 
     #[must_use]
-    pub fn get_device() -> &'static wgpu::Device { &Renderer::get().device }
+    pub fn get_device(&self) -> &wgpu::Device { &self.device }
 
 
     #[must_use]
-    pub fn get_queue() -> &'static wgpu::Queue { &Renderer::get().queue }
+    pub fn get_queue(&self) -> &wgpu::Queue { &self.queue }
 
 
     #[must_use]
-    pub fn get_default_surface_config() -> &'static wgpu::SurfaceConfiguration {
+    pub fn get_default_surface_config(&self) -> &wgpu::SurfaceConfiguration {
 
-        &Renderer::get().surface_config
+        &self.surface_config
     }
 
 
@@ -77,20 +83,58 @@ impl Renderer {
     }
 
 
+    #[cfg(not(target_arch = "wasm32"))]
+    pub fn create_window_surface(
+        window: Arc<WinitWindow>
+    ) -> Result<wgpu::Surface<'static>, Error> {
+
+        RENDERER_INSTANCE.with(|renderer| {
+
+            match renderer.get() {
+                Some(renderer) => {
+                    renderer.create_surface(window)
+                }
+                None => {
+                    pollster::block_on(Renderer::init_and_create_window_surface(window))
+                }
+            }
+        })
+    }
+
+
     /// # Errors
     ///
     /// Returns an error if surface creation fails.
-    pub fn create_window_surface(window: Arc<WinitWindow>)
-        -> Result<wgpu::Surface<'static>, Error>
+    #[cfg(target_arch = "wasm32")]
+    pub fn trigger_surface_creation(
+        window: Box<dyn Window>,
+        proxy:  Arc<EventLoopProxy<RsmlAppEvent>>,
+        winit_window: Arc<WinitWindow>)
     {
-        match RENDERER_INSTANCE.get() {
-            Some(renderer) => {
-                renderer.create_surface(window)
-            },
-            None => {
-                pollster::block_on(Renderer::init_and_create_window_surface(window))
+        RENDERER_INSTANCE.with(|renderer| {
+
+            match renderer.get() {
+                Some(renderer) => {
+
+                    let renderer = renderer.clone();
+                    wasm_bindgen_futures::spawn_local(async move {
+
+                        assert!(proxy.send_event(
+                            (window, winit_window.clone(), renderer.create_surface(winit_window.clone()).expect("Unable to create canvas"))
+                        ).is_ok())
+                    });
+                }
+                None => {
+
+                    wasm_bindgen_futures::spawn_local(async move {
+
+                        assert!(proxy.send_event(
+                            (window, winit_window.clone(), Renderer::init_and_create_window_surface(winit_window.clone()).await.expect("Unable to create canvas!"))
+                        ).is_ok())
+                    });
+                }
             }
-        }
+        })
     }
 
 
@@ -115,19 +159,23 @@ impl Renderer {
         let default_texture_render_pipeline = Arc::new(
             create_default_texture_render_pipeline(&device, &surface_config));
 
-        assert!(RENDERER_INSTANCE.get().is_none(), "Renderer is already initialized?");
+        RENDERER_INSTANCE.with(|renderer| {
 
-        _ = RENDERER_INSTANCE.get_or_init(|| Self {
-            wgpu_instance,
-            wgpu_adapter,
-            device,
-            queue,
-            surface_config,
-            default_color_render_pipeline,
-            default_texture_render_pipeline
-        });
+            assert!(renderer.get().is_none(), "Renderer is already initialized!");
 
-        Ok(surface)
+            _ = renderer.get_or_init(|| Arc::new(Self {
+                wgpu_instance,
+                wgpu_adapter,
+                device,
+                queue,
+                surface_config,
+                default_color_render_pipeline,
+                default_texture_render_pipeline
+            }));
+
+            Ok(surface)
+        })
+
     }
 
 
@@ -193,11 +241,10 @@ impl Renderer {
     async fn create_device_and_queue(adapter: &wgpu::Adapter) -> Result<(wgpu::Device, wgpu::Queue), Error> {
 
         #[cfg(target_arch = "wasm32")]
-        let limits = wgpu::Limits::downlevel_webgl2_default();
+        let limits = wgpu::Limits::downlevel_webgl2_defaults();
 
         #[cfg(not(target_arch = "wasm32"))]
         let limits = adapter.limits();
-        //let limits = wgpu::Limits::default();
 
         match adapter.request_device(&wgpu::DeviceDescriptor {
             label:                 None,

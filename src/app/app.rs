@@ -2,18 +2,27 @@
 use winit::application::ApplicationHandler;
 use winit::event_loop::EventLoop;
 use winit::event_loop::ActiveEventLoop;
+use winit::event_loop::EventLoopProxy;
 use winit::event::WindowEvent;
-use winit::error::EventLoopError;
+use winit::window::Window as WinitWindow;
+
+#[cfg(target_arch = "wasm32")]
+use winit::platform::web::EventLoopExtWebSys;
 
 use crate::app::window_manager::WindowManager;
 use crate::window::Window;
 use crate::error::Error;
 
+use std::sync::Arc;
 
-struct AppHandler<AppType: App> {
+pub type RsmlAppEvent =  (Box<dyn Window>, Arc<WinitWindow>, wgpu::Surface<'static>);
+
+
+struct AppHandler<AppType: App + 'static> {
 
     app:            AppType,
     window_manager: WindowManager,
+    proxy:          Arc<EventLoopProxy<RsmlAppEvent>>
 }
 
 
@@ -26,16 +35,42 @@ pub trait App {
 /// # Errors
 ///
 /// Propagates winit error if creating or start of event loop fails.
-pub fn start<T: App + 'static>(app: T) -> Result<(), EventLoopError> {
+pub fn start<T: App + 'static>(app: T) -> Result<(), Error> {
 
-    let event_loop: EventLoop<AppHandler<T>> = EventLoop::with_user_event().build()?;
+    #[cfg(not(target_arch = "wasm32"))]
+    {
+        env_logger::init();
+    }
+    #[cfg(target_arch = "wasm32")]
+    {
+        console_log::init_with_level(log::Level::Info)
+            .map_err(|e| Error::FailedToInitConsoleLogger(format!("{e}")))?;
+    }
 
-    let mut app_handler = AppHandler::<T> {
-        app,
-        window_manager: WindowManager::new(),
-    };
+    let event_loop: EventLoop<RsmlAppEvent> = EventLoop::with_user_event().build()
+        .map_err(|e| Error::FailedToCreateEventLoop(format!("{e}")))?;
 
-    event_loop.run_app(&mut app_handler)?;
+    let proxy = Arc::new(event_loop.create_proxy());
+
+    #[cfg(not(target_arch = "wasm32"))]
+    {
+        let mut app_handler = AppHandler::<T> {
+            app,
+            window_manager: WindowManager::new(),
+            proxy
+        };
+        event_loop.run_app(&mut app_handler)
+            .map_err(|e| Error::FailedToStartApp(format!("{e}")))?;
+    }
+    #[cfg(target_arch = "wasm32")]
+    {
+        let app_handler = AppHandler::<T> {
+            app,
+            window_manager: WindowManager::new(),
+            proxy
+        };
+        event_loop.spawn_app(app_handler);
+    }
 
     Ok(())
 }
@@ -44,7 +79,7 @@ pub fn start<T: App + 'static>(app: T) -> Result<(), EventLoopError> {
 /// # Errors
 ///
 /// Propagates winit error if creating or start of event loop fails.
-pub fn start_single_window_app<T: Window + 'static>(window: T) -> Result<(), EventLoopError> {
+pub fn start_single_window_app<T: Window + 'static>(window: T) -> Result<(), Error> {
 
     start(SingleWindowApp{window: Some(window)})?;
 
@@ -73,13 +108,14 @@ impl<T: Window + 'static> App for SingleWindowApp<T> {
 }
 
 
-impl<T: App + 'static> ApplicationHandler<AppHandler<T>> for AppHandler<T> {
+impl<T: App + 'static> ApplicationHandler<RsmlAppEvent> for AppHandler<T> {
 
 
     fn resumed(&mut self, event_loop: &ActiveEventLoop) {
 
         let mut context = AppContext {
             event_loop,
+            proxy:          self.proxy.clone(),
             window_manager: &mut self.window_manager,
         };
 
@@ -87,8 +123,16 @@ impl<T: App + 'static> ApplicationHandler<AppHandler<T>> for AppHandler<T> {
     }
 
 
-    fn user_event(&mut self, _event_loop: &ActiveEventLoop, mut _app: AppHandler<T>) {
+    fn user_event(&mut self, _event_loop: &ActiveEventLoop, mut _event: RsmlAppEvent) {
 
+        #[cfg(target_arch = "wasm32")]
+        {
+            let window       = _event.0;
+            let winit_window = _event.1;
+            let surface      = _event.2;
+
+            self.window_manager.add_window(window, winit_window, surface);
+        }
     }
 
 
@@ -128,18 +172,19 @@ impl<T: App + 'static> ApplicationHandler<AppHandler<T>> for AppHandler<T> {
 pub struct AppContext<'a, 'b> {
 
     event_loop:     &'a ActiveEventLoop,
+    proxy:          Arc<EventLoopProxy<RsmlAppEvent>>,
     window_manager: &'b mut WindowManager,
 }
 
 
-impl AppContext<'_, '_> {
+impl AppContext<'_, '_,> {
 
     /// # Errors
     ///
     /// Propagates winit error if creation of window fails.
     pub fn create_window<T: Window + 'static>(&mut self, window: T) -> Result<(), Error> {
 
-        self.window_manager.create_window(self.event_loop, window)?;
+        self.window_manager.create_window(self.event_loop, self.proxy.clone(), window)?;
 
         Ok(())
     }

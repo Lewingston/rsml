@@ -7,3 +7,5 @@ pub use app::App;
 pub use app::start;
 pub use app::start_single_window_app;
 pub use app::AppContext;
+
+pub use app::RsmlAppEvent;

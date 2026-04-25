@@ -132,16 +132,14 @@ impl Shape {
             0, 1, 2
         ];
 
-        let device = Renderer::get_device();
-
         Self {
-            transform:          Transform::new(device),
-            vertex_buffer:      Self::create_vertex_buffer(&vert),
-            index_buffer:       Self::create_index_buffer(device, indices),
-            vertices:           vert,
-            index_count:        indices.len(),
-            render_pipeline:    Renderer::get().get_default_color_render_pipeline(),
-            texture:            None,
+            transform:       Transform::new(Renderer::get().get_device()),
+            vertex_buffer:   Self::create_vertex_buffer(&vert),
+            index_buffer:    Self::create_index_buffer(Renderer::get().get_device(), indices),
+            vertices:        vert,
+            index_count:     indices.len(),
+            render_pipeline: Renderer::get().get_default_color_render_pipeline(),
+            texture:         None,
         }
     }
 
@@ -163,16 +161,14 @@ impl Shape {
             0, 3, 2
         ];
 
-        let device = Renderer::get_device();
-
         Self {
-            transform:          Transform::new(device),
-            vertex_buffer:      Self::create_vertex_buffer(&vert),
-            index_buffer:       Self::create_index_buffer(device, indices),
-            vertices:           vert,
-            index_count:        indices.len(),
-            render_pipeline:    Renderer::get().get_default_color_render_pipeline(),
-            texture:            None,
+            transform:       Transform::new(Renderer::get().get_device()),
+            vertex_buffer:   Self::create_vertex_buffer(&vert),
+            index_buffer:    Self::create_index_buffer(Renderer::get().get_device(), indices),
+            vertices:        vert,
+            index_count:     indices.len(),
+            render_pipeline: Renderer::get().get_default_color_render_pipeline(),
+            texture:         None,
         }
     }
 
@@ -198,16 +194,14 @@ impl Shape {
             0, 3, 2
         ];
 
-        let device = Renderer::get_device();
-
         Self {
-            transform:          Transform::new(device),
-            vertex_buffer:      Self::create_vertex_buffer(&vert),
-            index_buffer:       Self::create_index_buffer(device, indices),
-            vertices:           vert,
-            index_count:        indices.len(),
-            render_pipeline:    Renderer::get().get_default_texture_render_pipeline(),
-            texture:            Some(texture),
+            transform:       Transform::new(Renderer::get().get_device()),
+            vertex_buffer:   Self::create_vertex_buffer(&vert),
+            index_buffer:    Self::create_index_buffer(Renderer::get().get_device(), indices),
+            vertices:        vert,
+            index_count:     indices.len(),
+            render_pipeline: Renderer::get().get_default_texture_render_pipeline(),
+            texture:         Some(texture),
         }
     }
 
@@ -232,7 +226,7 @@ impl Shape {
 
     fn create_vertex_buffer(vertices: &[Vertex]) -> wgpu::Buffer {
 
-        Renderer::get_device().create_buffer_init(
+        Renderer::get().get_device().create_buffer_init(
             &wgpu::util::BufferInitDescriptor {
                 label:    Some("vertex buffer"),
                 contents: bytemuck::cast_slice(vertices),

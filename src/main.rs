@@ -39,8 +39,9 @@ impl Scene {
 
         let text = "This is a test text.\nThis is the second line.\nSome thing lol!\n1234567890\n?$#%&X§";
 
-        let text = rsml::Text::new(text, font.clone(), font_size);
+        let mut text = rsml::Text::new(text, font.clone(), font_size);
         text.set_color(Color { r: 0, g: 0, b: 255, a: 255 });
+        text.get_transform().rotate_z(cgmath::Rad(45.0));
 
         let Ok(texture) = font.borrow_mut().get_texture(font_size) else { return None; };
 
@@ -105,6 +106,20 @@ impl rsml::Window for MainWindow {
     fn event(&mut self, _event: winit::event::WindowEvent, _context: rsml::WindowContext) {
 
     }
+}
+
+
+#[cfg(target_arch = "wasm32")]
+#[wasm_bindgen(start)]
+pub fn run_web() -> Result<(), wasm_binding::JsValue> {
+
+    web_sys::console::log_1(&"Hello from Rust!".into());
+
+    console_error_panic_hook::set_once();
+
+    rsml::start(MyApp{}).unwrap_throw();
+
+    Ok(())
 }
 
 

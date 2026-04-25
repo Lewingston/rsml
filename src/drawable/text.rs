@@ -17,8 +17,13 @@ use std::rc::Rc;
 use std::cell::RefCell;
 use std::collections::HashSet;
 
+use once_cell::unsync::OnceCell;
 
-static TEXT_RENDER_PIPELINE: std::sync::OnceLock<Arc<wgpu::RenderPipeline>> = std::sync::OnceLock::new();
+//static TEXT_RENDER_PIPELINE: std::sync::OnceLock<Arc<wgpu::RenderPipeline>> = std::sync::OnceLock::new();
+
+thread_local! {
+    static TEXT_RENDER_PIPELINE: OnceCell<Arc<wgpu::RenderPipeline>> = OnceCell::new();
+}
 
 
 pub struct Text {
@@ -66,7 +71,7 @@ impl Text {
 
         let characters = Self::calculate_layout(text, &mut *font.borrow_mut(), font_size);
 
-        let instance_buffer = Renderer::get_device().create_buffer_init(
+        let instance_buffer = Renderer::get().get_device().create_buffer_init(
             &wgpu::util::BufferInitDescriptor {
                 label:    Some("Text character instance buffer"),
                 contents: bytemuck::cast_slice(&characters),
@@ -77,7 +82,7 @@ impl Text {
         let color_uniform = ColorUniform::new(Color { r: 0, g: 0, b: 0, a: 255 });
 
         Self {
-            transform: Transform::new(Renderer::get_device()),
+            transform: Transform::new(Renderer::get().get_device()),
             font,
             font_size,
             render_pipeline:   get_default_text_render_pipeline(),
@@ -180,13 +185,18 @@ impl Drawable for Text {
 
 pub fn get_default_text_render_pipeline() -> Arc<wgpu::RenderPipeline> {
 
-    TEXT_RENDER_PIPELINE.get_or_init(|| Arc::new(create_default_text_render_pipeline())).clone()
+    //TEXT_RENDER_PIPELINE.get_or_init(|| Arc::new(create_default_text_render_pipeline())).clone()
+
+    TEXT_RENDER_PIPELINE.with(|p| {
+        p.get_or_init(|| Arc::new(create_default_text_render_pipeline())).clone()
+    })
 }
 
 
 fn create_default_text_render_pipeline() -> wgpu::RenderPipeline {
 
-    let device = Renderer::get_device();
+    let renderer = Renderer::get();
+    let device   = renderer.get_device();
 
     let matrix_layout  = MatrixUniform::get_bind_group_layout(device);
     let texture_layout = Texture::get_default_bind_group_layout(device);
@@ -239,7 +249,7 @@ fn create_default_text_render_pipeline() -> wgpu::RenderPipeline {
             module:      &shader,
             entry_point: Some("fs_main"),
             targets:     &[Some(wgpu::ColorTargetState {
-                format:     Renderer::get_default_surface_config().format,
+                format:     Renderer::get().get_default_surface_config().format,
                 blend:      Some(wgpu::BlendState::ALPHA_BLENDING),
                 write_mask: wgpu::ColorWrites::ALL
             })],

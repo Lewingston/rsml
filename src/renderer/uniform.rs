@@ -30,7 +30,7 @@ impl MatrixUniform {
 
     pub fn update(&self, matrix: cgmath::Matrix4<f32>) {
 
-        Renderer::get_queue().write_buffer(&self.buffer, 0, bytemuck::cast_slice(&[Self::get_matrix(matrix)]));
+        Renderer::get().get_queue().write_buffer(&self.buffer, 0, bytemuck::cast_slice(&[Self::get_matrix(matrix)]));
     }
 
 
@@ -113,7 +113,8 @@ impl ColorUniform {
     #[must_use]
     pub fn new(color: Color) -> Self {
 
-        let device     = Renderer::get_device();
+        let renderer   = Renderer::get();
+        let device     = renderer.get_device();
         let buffer     = Self::create_buffer(device, color);
         let bind_group = Self::create_bind_group(device, &buffer);
 
@@ -126,7 +127,7 @@ impl ColorUniform {
 
     pub fn update(&self, color: Color) {
 
-        Renderer::get_queue().write_buffer(
+        Renderer::get().get_queue().write_buffer(
             &self.buffer,
             0,
             bytemuck::cast_slice(&Self::get_color_vector(color))

@@ -87,7 +87,7 @@ impl Texture {
 
         let texture    = Self::create_texture_from_gray_image(image, width, height, label);
         let view       = texture.create_view(&wgpu::TextureViewDescriptor::default());
-        let sampler    = Self::create_sampler(Renderer::get_device());
+        let sampler    = Self::create_sampler(Renderer::get().get_device());
         let bind_group = Some(Self::create_bind_group(&view, &sampler));
 
         Self { texture, view, sampler, bind_group }
@@ -102,7 +102,7 @@ impl Texture {
 
         let texture    = Self::create_texture_from_dynamic_image(image, label);
         let view       = texture.create_view(&wgpu::TextureViewDescriptor::default());
-        let sampler    = Self::create_sampler(Renderer::get_device());
+        let sampler    = Self::create_sampler(Renderer::get().get_device());
         let bind_group = Some(Self::create_bind_group(&view, &sampler));
 
         Self { texture, view, sampler, bind_group }
@@ -132,11 +132,11 @@ impl Texture {
             view_formats:    &[]
         };
 
-        let texture = Renderer::get_device().create_texture(&desc);
+        let texture = Renderer::get().get_device().create_texture(&desc);
 
         let view = texture.create_view(&wgpu::TextureViewDescriptor::default());
 
-        let sampler = Renderer::get_device().create_sampler(
+        let sampler = Renderer::get().get_device().create_sampler(
             &wgpu::SamplerDescriptor {
                 address_mode_u: wgpu::AddressMode::ClampToEdge,
                 address_mode_v: wgpu::AddressMode::ClampToEdge,
@@ -187,7 +187,7 @@ impl Texture {
             depth_or_array_layers: 1,
         };
 
-        let texture = Renderer::get_device().create_texture(
+        let texture = Renderer::get().get_device().create_texture(
             &wgpu::TextureDescriptor {
                 label,
                 size,
@@ -200,7 +200,7 @@ impl Texture {
             }
         );
 
-        Renderer::get_queue().write_texture(
+        Renderer::get().get_queue().write_texture(
             wgpu::TexelCopyTextureInfo {
                 aspect:    wgpu::TextureAspect::All,
                 texture:   &texture,
@@ -233,7 +233,7 @@ impl Texture {
             depth_or_array_layers: 1,
         };
 
-        let texture = Renderer::get_device().create_texture(
+        let texture = Renderer::get().get_device().create_texture(
             &wgpu::TextureDescriptor {
                 label,
                 size,
@@ -246,7 +246,7 @@ impl Texture {
             }
         );
 
-        Renderer::get_queue().write_texture(
+        Renderer::get().get_queue().write_texture(
             wgpu::TexelCopyTextureInfo {
                 aspect:    wgpu::TextureAspect::All,
                 texture:   &texture,
@@ -317,9 +317,9 @@ impl Texture {
         sampler: &wgpu::Sampler)
     -> wgpu::BindGroup {
 
-        Renderer::get_device().create_bind_group(
+        Renderer::get().get_device().create_bind_group(
             &wgpu::BindGroupDescriptor {
-                layout:  &Texture::get_default_bind_group_layout(Renderer::get_device()),
+                layout:  &Texture::get_default_bind_group_layout(Renderer::get().get_device()),
                 entries: &[
                     wgpu::BindGroupEntry {
                         binding:  0,
