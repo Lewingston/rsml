@@ -29,3 +29,14 @@ vim.keymap.set('n', '<C-c>', function()
                  '-Wclippy::unwrap_used ' ..
                  '-Aclippy::module_inception')
 end)
+
+
+vim.api.nvim_create_user_command("WebDemo", function()
+
+    local demoName = 'cubes_and_camera'
+
+    runInConsole('cargo build --example ' .. demoName .. ' --target wasm32-unknown-unknown && ' ..
+                 'wasm-bindgen target/wasm32-unknown-unknown/debug/examples/' .. demoName .. '.wasm ' ..
+                 '--out-dir pkg --target web && ' ..
+                 'node test.js')
+end, {})
