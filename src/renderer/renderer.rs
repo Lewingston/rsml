@@ -1,9 +1,6 @@
 
 use winit::window::Window as WinitWindow;
 
-#[cfg(target_arch = "wasm32")]
-use winit::event_loop::EventLoopProxy;
-
 use crate::error::Error;
 
 use crate::drawable::drawable::Vertex;
@@ -11,18 +8,32 @@ use crate::drawable::texture::Texture;
 
 use crate::renderer::uniform::MatrixUniform;
 
+use std::sync::Arc;
+
+#[cfg(target_arch = "wasm32")]
+use winit::event_loop::EventLoopProxy;
+
 #[cfg(target_arch = "wasm32")]
 use crate::app::RsmlAppEvent;
 #[cfg(target_arch = "wasm32")]
 use crate::window::window::Window;
 
-use std::sync::Arc;
+#[cfg(target_arch = "wasm32")]
+use std::rc::Rc;
 
+#[cfg(target_arch = "wasm32")]
 use std::cell::OnceCell;
 
+#[cfg(target_arch = "wasm32")]
 thread_local! {
-    static RENDERER_INSTANCE: OnceCell<Arc<Renderer>> = OnceCell::new();
+    static RENDERER_INSTANCE: OnceCell<Rc<Renderer>> = OnceCell::new();
 }
+
+#[cfg(not(target_arch = "wasm32"))]
+use std::sync::OnceLock;
+
+#[cfg(not(target_arch = "wasm32"))]
+static RENDERER_INSTANCE: OnceLock<Renderer> = OnceLock::new();
 
 
 pub struct Renderer {
@@ -45,12 +56,19 @@ impl Renderer {
     ///
     /// Will panic if application tries to access renderer before renderer is initialized.
     /// Creating the first window will initialize the renderer.
+    #[cfg(target_arch = "wasm32")]
     #[must_use]
-    pub fn get() -> Arc<Renderer> {
+    pub fn get() -> Rc<Renderer> {
 
-        RENDERER_INSTANCE.with(|r| {
-            r.get().expect("Renderer not initialized!").clone()
+        RENDERER_INSTANCE.with(|renderer| {
+            renderer.get().expect("Renderer not initialized!").clone()
         })
+    }
+
+    #[cfg(not(target_arch = "wasm32"))]
+    pub fn get() -> &'static Renderer {
+
+        RENDERER_INSTANCE.get().expect("Renderer not initialized!")
     }
 
 
@@ -88,17 +106,14 @@ impl Renderer {
         window: Arc<WinitWindow>
     ) -> Result<wgpu::Surface<'static>, Error> {
 
-        RENDERER_INSTANCE.with(|renderer| {
-
-            match renderer.get() {
-                Some(renderer) => {
-                    renderer.create_surface(window)
-                }
-                None => {
-                    pollster::block_on(Renderer::init_and_create_window_surface(window))
-                }
+        match RENDERER_INSTANCE.get() {
+            Some(renderer) => {
+                renderer.create_surface(window)
             }
-        })
+            None => {
+                pollster::block_on(Renderer::init_and_create_window_surface(window))
+            }
+        }
     }
 
 
@@ -159,11 +174,29 @@ impl Renderer {
         let default_texture_render_pipeline = Arc::new(
             create_default_texture_render_pipeline(&device, &surface_config));
 
-        RENDERER_INSTANCE.with(|renderer| {
+        #[cfg(target_arch = "wasm32")]
+        {
+            RENDERER_INSTANCE.with(|renderer| {
 
-            assert!(renderer.get().is_none(), "Renderer is already initialized!");
+                assert!(renderer.get().is_none(), "Renderer is already initialized!");
 
-            _ = renderer.get_or_init(|| Arc::new(Self {
+                _ = renderer.get_or_init(|| Rc::new(Self {
+                    wgpu_instance,
+                    wgpu_adapter,
+                    device,
+                    queue,
+                    surface_config,
+                    default_color_render_pipeline,
+                    default_texture_render_pipeline
+                }));
+
+                Ok(surface)
+            })
+        }
+
+        #[cfg(not(target_arch = "wasm32"))]
+        {
+            _ = RENDERER_INSTANCE.get_or_init(|| Self {
                 wgpu_instance,
                 wgpu_adapter,
                 device,
@@ -171,10 +204,10 @@ impl Renderer {
                 surface_config,
                 default_color_render_pipeline,
                 default_texture_render_pipeline
-            }));
+            });
 
             Ok(surface)
-        })
+        }
 
     }
 
