@@ -244,12 +244,6 @@ impl rsml::App for App {
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
 
-    #[cfg(target_arch = "wasm32")]
-    {
-    web_sys::console::log_1(&"Hello from Rust!".into());
-    console_error_panic_hook::set_once();
-    }
-
     rsml::start(App{})?;
 
     Ok(())

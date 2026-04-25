@@ -37,15 +37,7 @@ pub trait App {
 /// Propagates winit error if creating or start of event loop fails.
 pub fn start<T: App + 'static>(app: T) -> Result<(), Error> {
 
-    #[cfg(not(target_arch = "wasm32"))]
-    {
-        env_logger::init();
-    }
-    #[cfg(target_arch = "wasm32")]
-    {
-        console_log::init_with_level(log::Level::Info)
-            .map_err(|e| Error::FailedToInitConsoleLogger(format!("{e}")))?;
-    }
+    init_loggers()?;
 
     let event_loop: EventLoop<RsmlAppEvent> = EventLoop::with_user_event().build()
         .map_err(|e| Error::FailedToCreateEventLoop(format!("{e}")))?;
@@ -59,6 +51,7 @@ pub fn start<T: App + 'static>(app: T) -> Result<(), Error> {
             window_manager: WindowManager::new(),
             proxy
         };
+
         event_loop.run_app(&mut app_handler)
             .map_err(|e| Error::FailedToStartApp(format!("{e}")))?;
     }
@@ -69,7 +62,31 @@ pub fn start<T: App + 'static>(app: T) -> Result<(), Error> {
             window_manager: WindowManager::new(),
             proxy
         };
+
         event_loop.spawn_app(app_handler);
+    }
+
+    Ok(())
+}
+
+
+fn init_loggers() -> Result<(), Error> {
+
+    #[cfg(not(target_arch = "wasm32"))]
+    {
+        env_logger::Builder::from_env(env_logger::Env::default().default_filter_or("info"))
+            .filter_module("rsml", log::LevelFilter::Info)
+            .filter_module("wgpu_hal::vulkan::instance", log::LevelFilter::Error)
+            .filter_module("wgpu_hal::vulkan::adapter", log::LevelFilter::Error)
+            .init();
+    }
+
+    #[cfg(target_arch = "wasm32")]
+    {
+        console_error_panic_hook::set_once();
+
+        console_log::init_with_level(log::Level::Info)
+            .map_err(|e| Error::FailedToInitConsoleLogger(format!("{e}")))?;
     }
 
     Ok(())

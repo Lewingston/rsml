@@ -109,20 +109,6 @@ impl rsml::Window for MainWindow {
 }
 
 
-#[cfg(target_arch = "wasm32")]
-#[wasm_bindgen(start)]
-pub fn run_web() -> Result<(), wasm_binding::JsValue> {
-
-    web_sys::console::log_1(&"Hello from Rust!".into());
-
-    console_error_panic_hook::set_once();
-
-    rsml::start(MyApp{}).unwrap_throw();
-
-    Ok(())
-}
-
-
 fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     rsml::start(MyApp{})?;
