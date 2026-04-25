@@ -73,54 +73,6 @@ impl MainScene {
             camera_control
         }
     }
-
-
-    /*
-    pub fn handle_key(
-        &mut self,
-        key_code: winit::keyboard::KeyCode,
-        is_pressed: bool,
-        queue: &wgpu::Queue)
-    {
-
-        use winit::keyboard::KeyCode as KeyCode;
-
-        if !is_pressed {
-            return;
-        }
-
-        let move_speed = 0.075;
-        let rotation_speed = 12.0;
-
-        match key_code {
-            KeyCode::KeyW | KeyCode::ArrowUp => {
-
-                self.cube.move_y(move_speed, queue);
-            }
-            KeyCode::KeyS | KeyCode::ArrowDown => {
-
-                self.cube.move_y(-move_speed, queue);
-            }
-            KeyCode::KeyA | KeyCode::ArrowLeft => {
-
-                self.cube.move_x(-move_speed, queue);
-            }
-            KeyCode::KeyD | KeyCode::ArrowRight => {
-
-                self.cube.move_x(move_speed, queue);
-            }
-            KeyCode::KeyQ => {
-
-                self.cube.rotate(cgmath::Deg(rotation_speed), queue);
-            }
-            KeyCode::KeyE => {
-
-                self.cube.rotate(cgmath::Deg(-rotation_speed), queue);
-            }
-            _ => {}
-        }
-    }
-    */
 }
 
 
@@ -215,30 +167,6 @@ impl Cube {
             face.get_transform().translate(cgmath::Vector3::<f32>{ x: 0.0, y: 0.0, z: z });
         }
     }
-
-
-    /*
-    pub fn rotate(&mut self, deg: cgmath::Deg<f32>, queue: &wgpu::Queue) {
-
-        // front
-        self.faces[0].get_transform().rotate_y(cgmath::Rad::<f32>::from(deg));
-        // top
-        self.faces[1].get_transform().rotate_z(cgmath::Rad::<f32>::from(deg));
-        // left
-        self.faces[2].get_transform().rotate_y(cgmath::Rad::<f32>::from(deg));
-        // right
-        self.faces[3].get_transform().rotate_y(cgmath::Rad::<f32>::from(deg));
-        // back
-        self.faces[4].get_transform().rotate_y(cgmath::Rad::<f32>::from(deg));
-        // bottom
-        self.faces[5].get_transform().rotate_z(cgmath::Rad::<f32>::from(-deg));
-
-        for face in &mut self.faces {
-
-            face.get_transform().update(queue);
-        }
-    }
-    */
 }
 
 
@@ -294,8 +222,6 @@ impl rsml::Window for MainWindow {
 
             let Some(scene) = &mut self.scene else { return; };
 
-            //scene.handle_key(code, key_state.is_pressed(), context.renderer.get_queue());
-
             scene.camera_control.keyboard_input(code, key_state.is_pressed());
         }
     }
@@ -317,6 +243,12 @@ impl rsml::App for App {
 
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
+
+    #[cfg(target_arch = "wasm32")]
+    {
+    web_sys::console::log_1(&"Hello from Rust!".into());
+    console_error_panic_hook::set_once();
+    }
 
     rsml::start(App{})?;
 
