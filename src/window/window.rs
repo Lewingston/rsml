@@ -10,6 +10,7 @@ use crate::renderer::render_target::RenderTarget;
 use crate::renderer::camera::Camera;
 
 use crate::drawable::texture::Texture;
+use crate::drawable::drawable::Color;
 
 #[cfg(target_arch = "wasm32")]
 use wasm_bindgen::prelude::*;
@@ -38,7 +39,8 @@ pub struct WindowHandler {
     surface:         wgpu::Surface<'static>,
     surface_config:  wgpu::SurfaceConfiguration,
     camera:          Rc<RefCell<Camera>>,
-    depth_texture:   Texture
+    depth_texture:   Texture,
+    config:          WindowConfig
 }
 
 
@@ -46,7 +48,25 @@ pub struct WindowContext<'window_handler> {
 
     pub surface:        &'window_handler wgpu::Surface<'static>,
     pub surface_config: &'window_handler wgpu::SurfaceConfiguration,
-    pub camera:         &'window_handler Rc<RefCell<Camera>>
+    pub camera:         &'window_handler Rc<RefCell<Camera>>,
+    pub window_config:  &'window_handler mut WindowConfig
+}
+
+
+impl WindowContext<'_> {
+
+    #[must_use]
+    pub fn get_width(&self) -> u32 { self.surface_config.width }
+
+    #[must_use]
+    pub fn get_height(&self) -> u32 { self.surface_config.height }
+}
+
+
+pub struct WindowConfig
+{
+    pub adjust_camera_on_resize: bool,
+    pub background_color:        Color
 }
 
 
@@ -76,13 +96,19 @@ impl WindowHandler {
 
         let depth_texture = Texture::create_depth_texture(&surface_config);
 
+        let config = WindowConfig {
+            adjust_camera_on_resize: true,
+            background_color:        Color{r: 25, g: 50, b: 75, a: 255}
+        };
+
         let mut window_handler = Self {
             window: Box::new(window),
             winit_window,
             surface,
             surface_config,
             camera,
-            depth_texture
+            depth_texture,
+            config
         };
 
         window_handler.start();
@@ -131,7 +157,8 @@ impl WindowHandler {
         let context = WindowContext {
             surface:        &self.surface,
             surface_config: &self.surface_config,
-            camera:         &self.camera
+            camera:         &self.camera,
+            window_config:  &mut self.config
         };
 
         self.window.start(context);
@@ -145,7 +172,8 @@ impl WindowHandler {
         let context = WindowContext {
             surface:        &self.surface,
             surface_config: &self.surface_config,
-            camera:         &self.camera
+            camera:         &self.camera,
+            window_config:  &mut self.config
         };
 
         self.window.event(event, context);
@@ -166,10 +194,12 @@ impl WindowHandler {
         self.surface.configure(Renderer::get().get_device(), &self.surface_config);
         self.depth_texture = Texture::create_depth_texture(&self.surface_config);
 
-        let mut cam_params = self.camera.borrow().get_parameters().clone();
-        cam_params.width  = width;
-        cam_params.height = height;
-        self.camera.borrow_mut().set_parameters(cam_params);
+        if self.config.adjust_camera_on_resize {
+            let mut cam_params = self.camera.borrow().get_parameters().clone();
+            cam_params.width  = width;
+            cam_params.height = height;
+            self.camera.borrow_mut().set_parameters(cam_params);
+        }
     }
 
 
@@ -207,6 +237,8 @@ impl WindowHandler {
         });
 
         {
+            let color = self.config.background_color;
+
             let render_pass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
                 label: Some("Render Pass"),
                 color_attachments: &[Some(wgpu::RenderPassColorAttachment {
@@ -214,12 +246,8 @@ impl WindowHandler {
                     resolve_target: None,
                     depth_slice:    None,
                     ops: wgpu::Operations {
-                        load: wgpu::LoadOp::Clear(wgpu::Color {
-                            r: 0.1,
-                            g: 0.2,
-                            b: 0.3,
-                            a: 1.0
-                        }),
+                        //load:  wgpu::LoadOp::Clear(color.to_wgpu_color()),
+                        load: wgpu::LoadOp::Clear(color.to_srgb()),
                         store: wgpu::StoreOp::Store
                     }
                 })],
