@@ -30,7 +30,6 @@ pub struct Color {
 
 impl Color {
 
-
     #[must_use]
     pub fn random() -> Self {
 
@@ -47,6 +46,35 @@ impl Color {
             g,
             b,
             a
+        }
+    }
+
+
+    #[must_use]
+    pub fn to_wgpu_color(&self) -> wgpu::Color {
+
+        wgpu::Color {
+            r: self.r as f64 / 255.0,
+            g: self.g as f64 / 255.0,
+            b: self.b as f64 / 255.0,
+            a: self.a as f64 / 255.0
+        }
+    }
+
+
+    #[must_use]
+    pub fn to_srgb(&self) -> wgpu::Color {
+
+        let convert = |c: u8| -> f64 {
+            let c = c as f64 / 255.0;
+            ((c + 0.055) / 1.055).powf(2.4)
+        };
+
+        wgpu::Color {
+            r: convert(self.r),
+            g: convert(self.g),
+            b: convert(self.b),
+            a: self.a as f64 / 255.0
         }
     }
 }
