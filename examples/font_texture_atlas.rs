@@ -84,7 +84,7 @@ impl MainScene {
         let font_size = 50.0;
 
         let Ok(mut font) = rsml::Font::from_file("./comic.ttf") else {
-            println!("Failed to load font from file!");
+            log::error!("Failed to load font from file!");
             return None;
         };
 
