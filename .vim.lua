@@ -33,7 +33,7 @@ end)
 
 vim.api.nvim_create_user_command("WebDemo", function()
 
-    local demoName = 'cubes_and_camera'
+    local demoName = 'font_rendering'
 
     runInConsole('cargo build --example ' .. demoName .. ' --release --target wasm32-unknown-unknown && ' ..
                  'wasm-bindgen target/wasm32-unknown-unknown/release/examples/' .. demoName .. '.wasm ' ..
