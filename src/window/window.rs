@@ -246,7 +246,6 @@ impl WindowHandler {
                     resolve_target: None,
                     depth_slice:    None,
                     ops: wgpu::Operations {
-                        //load:  wgpu::LoadOp::Clear(color.to_wgpu_color()),
                         load: wgpu::LoadOp::Clear(color.to_srgb()),
                         store: wgpu::StoreOp::Store
                     }
