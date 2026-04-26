@@ -157,8 +157,12 @@ impl WindowHandler {
         width:  u32,
         height: u32,
     ) {
-        self.surface_config.width  = width;
-        self.surface_config.height = height;
+
+        let limits = Renderer::get().get_limits();
+        let max_tex_size = limits.max_texture_dimension_2d;
+
+        self.surface_config.width  = std::cmp::min(width, max_tex_size);
+        self.surface_config.height = std::cmp::min(height, max_tex_size);
         self.surface.configure(Renderer::get().get_device(), &self.surface_config);
         self.depth_texture = Texture::create_depth_texture(&self.surface_config);
 
