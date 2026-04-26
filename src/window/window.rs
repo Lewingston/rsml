@@ -137,13 +137,19 @@ impl WindowHandler {
 
         let depth_texture = Texture::create_depth_texture(&surface_config);
 
+        let config = WindowConfig {
+            adjust_camera_on_resize: true,
+            background_color:        Color{r: 25, g: 50, b: 75, a: 255}
+        };
+
         let mut window_handler = Self {
             window,
             winit_window,
             surface,
             surface_config,
             camera,
-            depth_texture
+            depth_texture,
+            config
         };
 
         window_handler.start();
