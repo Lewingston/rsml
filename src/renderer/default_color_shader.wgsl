@@ -45,5 +45,10 @@ fn vs_main(
 @fragment
 fn fs_main(in: VertexOutput) -> @location(0) vec4<f32> {
 
-    return vec4<f32>(in.color);
+    return vec4<f32>(
+        pow((in.color.r + 0.055) / 1.055, 2.4),
+        pow((in.color.g + 0.055) / 1.055, 2.4),
+        pow((in.color.b + 0.055) / 1.055, 2.4),
+        in.color.a
+    );
 }
