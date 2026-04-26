@@ -27,21 +27,25 @@ struct Scene {
     text_input:  rsml::Text,
     info_text:   rsml::Text,
 
-    text: String
+    text: String,
+
+    font: Rc<RefCell<rsml::Font>>
 }
 
 
 impl Scene {
 
-    fn new(text: &str, width: u32, height: u32) -> Option<Self> {
+    fn new(
+        text:   &str,
+        width:  u32,
+        height: u32,
+        font:   Rc<RefCell<rsml::Font>>
+    ) -> Option<Self> {
 
         use fontdue::layout::LayoutSettings as Layout;
 
         let width  = width as f32;
         let height = height as f32;
-
-        let Ok(font) = rsml::Font::from_bytes(include_bytes!("./roboto.ttf")) else { return None; };
-        let font = Rc::new(RefCell::new(font));
 
         let header_layout = Layout {
             x: -width / 2.0,
@@ -89,7 +93,8 @@ impl Scene {
             text_area,
             text_input,
             info_text,
-            text: text.to_string()
+            text: text.to_string(),
+            font
         })
     }
 
@@ -127,6 +132,12 @@ impl Scene {
 
         &self.text
     }
+
+
+    pub fn get_font(&self) -> Rc<RefCell<rsml::Font>> {
+
+        self.font.clone()
+    }
 }
 
 
@@ -156,7 +167,10 @@ impl rsml::Window for MainWindow {
         context.window_config.background_color = Color { r: 26, g: 33, b: 46, a: 255 };
         context.window_config.adjust_camera_on_resize = true;
 
-        self.scene = Scene::new("", context.get_width(), context.get_height());
+        let Ok(font) = rsml::Font::from_bytes(include_bytes!("./roboto.ttf")) else { return; };
+        let font = Rc::new(RefCell::new(font));
+
+        self.scene = Scene::new("", context.get_width(), context.get_height(), font);
     }
 
 
@@ -208,7 +222,8 @@ impl rsml::Window for MainWindow {
                 }
             }
             winit::event::WindowEvent::Resized(size) => {
-                self.scene = Scene::new(scene.get_text(), size.width, size.height);
+
+                self.scene = Scene::new(scene.get_text(), size.width, size.height, scene.get_font());
             }
             _ => {}
         }
