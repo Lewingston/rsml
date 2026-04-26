@@ -38,7 +38,7 @@ pub struct Text {
 
     instance_buffer: wgpu::Buffer,
 
-    color_uniform: ColorUniform
+    color_uniform: ColorUniform,
 }
 
 
@@ -67,9 +67,16 @@ impl Text {
     }
 
 
-    pub fn new(text: &str, font: Rc<RefCell<Font>>, font_size: f32) -> Self {
+    pub fn new(
+        text:      &str,
+        font:      Rc<RefCell<Font>>,
+        font_size: f32,
+        layout:    Option<fontdue::layout::LayoutSettings>
+    ) -> Self {
 
-        let characters = Self::calculate_layout(text, &mut *font.borrow_mut(), font_size);
+        let layout = layout.unwrap_or(fontdue::layout::LayoutSettings::default());
+
+        let characters = Self::calculate_layout(text, &mut *font.borrow_mut(), font_size, &layout);
 
         let instance_buffer = Renderer::get().get_device().create_buffer_init(
             &wgpu::util::BufferInitDescriptor {
@@ -88,7 +95,7 @@ impl Text {
             render_pipeline:   get_default_text_render_pipeline(),
             character_sprites: characters,
             instance_buffer:   instance_buffer,
-            color_uniform
+            color_uniform,
         }
     }
 
@@ -100,24 +107,20 @@ impl Text {
 
 
     fn calculate_layout(
-        text:      &str,
-        font:      &mut Font,
-        font_size: f32
+        text:            &str,
+        font:            &mut Font,
+        font_size:       f32,
+        layout_settings: &fontdue::layout::LayoutSettings
     ) -> Vec<CharSpriteInstance> {
 
         use fontdue::layout::{
             Layout,
             CoordinateSystem,
-            LayoutSettings,
             TextStyle
         };
 
         let mut layout : Layout = Layout::new(CoordinateSystem::PositiveYUp);
-        layout.reset(&LayoutSettings {
-            max_width:  None,
-            max_height: None,
-            ..LayoutSettings::default()
-        });
+        layout.reset(layout_settings);
 
         layout.append(
             &[font.get_fontdue_font()],
@@ -156,6 +159,10 @@ impl Text {
 impl Drawable for Text {
 
     fn draw(&self, render_target: &mut RenderTarget) {
+
+        if self.character_sprites.is_empty() {
+            return;
+        }
 
         let camera = render_target.get_camera();
 
