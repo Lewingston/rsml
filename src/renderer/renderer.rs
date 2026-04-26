@@ -81,6 +81,10 @@ impl Renderer {
 
 
     #[must_use]
+    pub fn get_adapter(&self) -> &wgpu::Adapter { &self.wgpu_adapter }
+
+
+    #[must_use]
     pub fn get_default_surface_config(&self) -> &wgpu::SurfaceConfiguration {
 
         &self.surface_config
@@ -98,6 +102,19 @@ impl Renderer {
     pub fn get_default_texture_render_pipeline(&self) -> Arc<wgpu::RenderPipeline> {
 
         self.default_texture_render_pipeline.clone()
+    }
+
+
+    #[must_use]
+    pub fn get_limits(&self) -> wgpu::Limits {
+
+        #[cfg(target_arch = "wasm32")]
+        let limits = wgpu::Limits::downlevel_webgl2_defaults();
+
+        #[cfg(not(target_arch = "wasm32"))]
+        let limits = self.get_adapter().limits();
+
+        limits
     }
 
 
