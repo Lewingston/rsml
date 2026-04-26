@@ -39,6 +39,8 @@ pub struct Text {
     instance_buffer: wgpu::Buffer,
 
     color_uniform: ColorUniform,
+
+    layout_settings: fontdue::layout::LayoutSettings
 }
 
 
@@ -78,13 +80,7 @@ impl Text {
 
         let characters = Self::calculate_layout(text, &mut *font.borrow_mut(), font_size, &layout);
 
-        let instance_buffer = Renderer::get().get_device().create_buffer_init(
-            &wgpu::util::BufferInitDescriptor {
-                label:    Some("Text character instance buffer"),
-                contents: bytemuck::cast_slice(&characters),
-                usage:    wgpu::BufferUsages::VERTEX
-            }
-        );
+        let instance_buffer = Self::create_instance_buffer(&characters);
 
         let color_uniform = ColorUniform::new(Color { r: 0, g: 0, b: 0, a: 255 });
 
@@ -96,6 +92,7 @@ impl Text {
             character_sprites: characters,
             instance_buffer:   instance_buffer,
             color_uniform,
+            layout_settings:   layout
         }
     }
 
@@ -103,6 +100,18 @@ impl Text {
     pub fn set_color(&self, color: Color) {
 
         self.color_uniform.update(color);
+    }
+
+
+    pub fn set_text(&mut self, text: &str) {
+
+        self.character_sprites = Self::calculate_layout(
+            text,
+            &mut *self.font.borrow_mut(),
+            self.font_size,
+            &self.layout_settings);
+
+        self.instance_buffer = Self::create_instance_buffer(&self.character_sprites);
     }
 
 
@@ -152,6 +161,18 @@ impl Text {
             }
 
         }).collect()
+    }
+
+
+    fn create_instance_buffer(char_sprites: &Vec<CharSpriteInstance>) -> wgpu::Buffer {
+
+        Renderer::get().get_device().create_buffer_init(
+            &wgpu::util::BufferInitDescriptor {
+                label:    Some( "Text character instance buffer"),
+                contents: bytemuck::cast_slice(char_sprites),
+                usage:    wgpu::BufferUsages::VERTEX
+            }
+        )
     }
 }
 
