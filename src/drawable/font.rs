@@ -93,8 +93,6 @@ pub struct CharParams {
     pub y: u32,
     pub w: u32,
     pub h: u32,
-
-    //pub metrics: fontdue::Metrics
 }
 
 
@@ -186,8 +184,8 @@ impl FontTextureAtlas {
 
     fn resize_image(&mut self, width: u32, height: u32) {
 
-        let width  = width  + self.image.get_width();
-        let height = height + self.image.get_height();
+        let width  = width  + self.image.get_width() + FontTextureImage::OFFSET * 2;
+        let height = height + self.image.get_height() + FontTextureImage::OFFSET * 2;
 
         let Some(mut new_image) = FontTextureImage::new(width, height) else { return; };
 
@@ -217,6 +215,9 @@ struct FontTextureImage {
 
 
 impl FontTextureImage {
+
+
+    pub const OFFSET: u32 = 1;
 
 
     pub fn new(width: u32, height: u32) -> Option<Self> {
@@ -268,11 +269,10 @@ impl FontTextureImage {
             self.draw_char(pos_x, pos_y, &metrics, bitmap);
 
             Some(CharParams {
-                x: pos_x,
-                y: pos_y,
-                w: metrics.width as u32,
+                x: pos_x + Self::OFFSET,
+                y: pos_y + Self::OFFSET,
+                w: metrics.width  as u32,
                 h: metrics.height as u32,
-                //metrics
             })
         }
         else if self.has_space_in_new_line(metrics.width, metrics.height) {
@@ -287,11 +287,10 @@ impl FontTextureImage {
             self.draw_char(pos_x, pos_y, &metrics, bitmap);
 
             Some(CharParams {
-                x: pos_x,
-                y: pos_y,
-                w: metrics.width as u32,
+                x: pos_x + Self::OFFSET,
+                y: pos_y + Self::OFFSET,
+                w: metrics.width  as u32,
                 h: metrics.height as u32,
-                //metrics
             })
         }
         else {
@@ -309,8 +308,8 @@ impl FontTextureImage {
 
         if !self.has_space_in_current_line(params.w as usize, params.h as usize) {
             if self.has_space_in_new_line(params.w as usize, params.h as usize) {
-                self.pos_x = 0;
-                self.pos_y += self.line_height;
+                self.pos_x       = 0;
+                self.pos_y      += self.line_height;
                 self.line_height = 0;
             } else {
                 return None;
@@ -320,21 +319,22 @@ impl FontTextureImage {
         for x in 0..params.w {
             for y in 0..params.h {
 
+                let pos_x = self.pos_x + x + Self::OFFSET;
+                let pos_y = self.pos_y + y + Self::OFFSET;
                 let luma = source.image.get_pixel(params.x + x, params.y + y);
-                self.image.put_pixel(self.pos_x + x, self.pos_y + y, *luma);
+                self.image.put_pixel(pos_x, pos_y, *luma);
             }
         }
 
         let new_param = CharParams {
-            x:       self.pos_x,
-            y:       self.pos_y,
-            w:       params.w,
-            h:       params.h,
-            //metrics: params.metrics
+            x: self.pos_x + Self::OFFSET,
+            y: self.pos_y + Self::OFFSET,
+            w: params.w,
+            h: params.h,
         };
 
-        self.pos_x += params.w;
-        self.line_height = std::cmp::max(self.line_height, params.h);
+        self.pos_x += params.w + Self::OFFSET * 2;
+        self.line_height = std::cmp::max(self.line_height, params.h + Self::OFFSET * 2);
 
         Some(new_param)
     }
@@ -342,8 +342,11 @@ impl FontTextureImage {
 
     fn has_space_in_current_line(&self, char_width: usize, char_height: usize) -> bool {
 
-        let horizontal = char_width  as u32 <= self.width - self.pos_x;
-        let vertical   = char_height as u32 <= self.height - self.pos_y;
+        let required_width  = char_width  as u32 + Self::OFFSET * 2;
+        let required_height = char_height as u32 + Self::OFFSET * 2;
+
+        let horizontal = required_width  <= self.width  - self.pos_x;
+        let vertical   = required_height <= self.height - self.pos_y;
 
         horizontal & vertical
     }
@@ -351,8 +354,11 @@ impl FontTextureImage {
 
     fn has_space_in_new_line(&self, char_width: usize, char_height: usize) -> bool {
 
-        let horizontal = char_width as u32 <= self.width;
-        let vertical   = char_height as u32 <= self.height - (self.pos_y + self.line_height);
+        let required_width  = char_width  as u32 + Self::OFFSET * 2;
+        let required_height = char_height as u32 + Self::OFFSET * 2;
+
+        let horizontal = required_width  <= self.width;
+        let vertical   = required_height <= self.height - (self.pos_y + self.line_height);
 
         horizontal & vertical
     }
@@ -377,11 +383,15 @@ impl FontTextureImage {
 
                 let luma = image::Luma::<u8>::from_slice(&bitmap[s_index..=s_index]);
 
-                self.image.put_pixel(pos_x + x, pos_y + y, *luma);
+                self.image.put_pixel(
+                    pos_x + x + Self::OFFSET,
+                    pos_y + y + Self::OFFSET,
+                    *luma
+                );
             }
         }
 
-        self.pos_x = pos_x + width;
-        self.line_height = std::cmp::max(self.line_height, height);
+        self.pos_x = pos_x + width + Self::OFFSET * 2;
+        self.line_height = std::cmp::max(self.line_height, height + Self::OFFSET * 2);
     }
 }
