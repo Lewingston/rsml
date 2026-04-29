@@ -25,8 +25,7 @@ impl Scene {
 
     fn new(_width: u32, _height: u32) -> Option<Self> {
 
-        Some(Self {
-        })
+        Some(Self {})
     }
 
 
