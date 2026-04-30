@@ -195,7 +195,7 @@ impl rsml::Window for MainWindow {
     }
 
 
-    fn draw(&mut self, render_target: &mut rsml::RenderTarget) {
+    fn draw(&mut self, render_target: &mut rsml::RenderTarget, _: &rsml::FrameMonitor) {
 
         let Some(scene) = &self.scene else { return; };
 

@@ -12,6 +12,8 @@ use crate::renderer::camera::Camera;
 use crate::drawable::texture::Texture;
 use crate::drawable::drawable::Color;
 
+use crate::window::frame_monitor::FrameMonitor;
+
 #[cfg(target_arch = "wasm32")]
 use wasm_bindgen::prelude::*;
 #[cfg(target_arch = "wasm32")]
@@ -21,12 +23,15 @@ use std::sync::Arc;
 use std::rc::Rc;
 use std::cell::RefCell;
 
+use std::time::Instant;
+use std::time::Duration;
+
 
 pub trait Window {
 
     fn start(&mut self, window_context: WindowContext);
 
-    fn draw(&mut self, render_target: &mut RenderTarget);
+    fn draw(&mut self, render_target: &mut RenderTarget, frame_monitor: &FrameMonitor);
 
     fn event(&mut self, event: WindowEvent, window_context: WindowContext);
 }
@@ -40,7 +45,8 @@ pub struct WindowHandler {
     surface_config:  wgpu::SurfaceConfiguration,
     camera:          Rc<RefCell<Camera>>,
     depth_texture:   Texture,
-    config:          WindowConfig
+    config:          WindowConfig,
+    frame_monitor:   FrameMonitor
 }
 
 
@@ -49,7 +55,7 @@ pub struct WindowContext<'window_handler> {
     pub surface:        &'window_handler wgpu::Surface<'static>,
     pub surface_config: &'window_handler wgpu::SurfaceConfiguration,
     pub camera:         &'window_handler Rc<RefCell<Camera>>,
-    pub window_config:  &'window_handler mut WindowConfig
+    pub window_config:  &'window_handler mut WindowConfig,
 }
 
 
@@ -108,7 +114,8 @@ impl WindowHandler {
             surface_config,
             camera,
             depth_texture,
-            config
+            config,
+            frame_monitor: FrameMonitor::new()
         };
 
         window_handler.start();
@@ -211,6 +218,8 @@ impl WindowHandler {
 
     pub fn draw(&mut self) {
 
+        self.frame_monitor.start_frame();
+
         self.winit_window.request_redraw();
 
         let output = match self.surface.get_current_texture() {
@@ -271,11 +280,13 @@ impl WindowHandler {
 
             let mut render_target = RenderTarget::new(render_pass, self.camera.clone());
 
-            self.window.draw(&mut render_target);
+            self.window.draw(&mut render_target, &self.frame_monitor);
         }
 
         Renderer::get().get_queue().submit(std::iter::once(encoder.finish()));
         output.present();
+
+        self.frame_monitor.end_frame();
     }
 
 
