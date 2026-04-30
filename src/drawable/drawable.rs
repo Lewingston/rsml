@@ -320,6 +320,16 @@ impl Transform {
     }
 
 
+    pub fn set_pos(&mut self, pos: cgmath::Point3<f32>) {
+
+        self.matrix[3][0] = pos.x;
+        self.matrix[3][1] = pos.y;
+        self.matrix[3][2] = pos.z;
+
+        self.update();
+    }
+
+
     pub fn rotate_x(&mut self, angle: cgmath::Rad<f32>) {
 
         self.matrix =
