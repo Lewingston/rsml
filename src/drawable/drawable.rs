@@ -83,9 +83,9 @@ impl Color {
 #[repr(C)]
 #[derive(Copy, Clone, Debug, bytemuck::Pod, bytemuck::Zeroable)]
 pub struct Vertex {
-    position:    [f32; 3],
-    texture_pos: [f32; 2],
-    color:       Color
+    pub position:    [f32; 3],
+    pub texture_pos: [f32; 2],
+    pub color:       Color
 }
 
 
