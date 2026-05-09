@@ -21,6 +21,7 @@ pub use drawable::vertex_buffer::VertexBuffer;
 pub use drawable::drawable::Vertex;
 pub use drawable::drawable::Shape;
 pub use drawable::drawable::Color;
+pub use drawable::drawable::Transform;
 pub use drawable::texture::Texture;
 pub use drawable::font::Font;
 pub use drawable::text::Text;
