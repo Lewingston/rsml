@@ -99,16 +99,22 @@ impl GameOfLife {
 
     fn new(width: u32, height: u32) -> Self {
 
-        let width:  usize = width  as usize / CELL_SIZE;
-        let height: usize = height as usize / CELL_SIZE;
+        let cells_x: usize = width  as usize / CELL_SIZE;
+        let cells_y: usize = height as usize / CELL_SIZE;
 
-        println!("Width: {width} - Height: {height} - Total: {}", width * height);
+        println!("Width: {cells_x} - Height: {cells_y} - Total: {}", cells_x * cells_y);
+
+        let offset_x = width - cells_x as u32 * CELL_SIZE as u32;
+        let offset_y = height - cells_y as u32 * CELL_SIZE as u32;
+
+        let mut mesh = Mesh::new(cells_x, cells_y, CELL_SIZE as f32, CELL_SIZE as f32);
+        mesh.set_offset(offset_x as f32 / 2.0, offset_y as f32 / 2.0);
 
         Self {
-            cells: vec![vec![false; width]; height],
-            mesh: Mesh::new(width, height, CELL_SIZE as f32, CELL_SIZE as f32),
-            width,
-            height
+            cells:  vec![vec![false; cells_x]; cells_y],
+            mesh,
+            width:  cells_x,
+            height: cells_y
         }
     }
 
@@ -148,6 +154,12 @@ impl Mesh {
             index_buffer:  Self::create_index_buffer(width, height),
             vertices
         }
+    }
+
+
+    pub fn set_offset(&mut self, x: f32, y: f32) {
+
+        self.transform.set_pos(cgmath::Point3 { x, y, z: 0.0 });
     }
 
 
@@ -236,7 +248,6 @@ impl Mesh {
 
         pass.set_pipeline(rsml::Renderer::get().get_default_color_render_pipeline().as_ref());
 
-        // TODO: Bind transform
         pass.set_bind_group(0, self.transform.get_bind_group(), &[]);
 
         pass.set_bind_group(1, camera.borrow().get_bind_group(), &[]);
@@ -252,9 +263,20 @@ impl Mesh {
 }
 
 
+#[derive(Debug, Clone)]
+struct MouseEvent {
+
+    left_button_pressed:  bool,
+    right_button_pressed: bool,
+    pos_x: f32,
+    pos_y: f32
+}
+
+
 struct MainWindow {
 
-    scene: Option<Scene>
+    scene: Option<Scene>,
+    mouse_state: MouseEvent
 }
 
 
@@ -263,7 +285,13 @@ impl MainWindow {
     fn new() -> Self {
 
         Self {
-            scene: None
+            scene: None,
+            mouse_state: MouseEvent {
+                left_button_pressed:  false,
+                right_button_pressed: false,
+                pos_x: 0.0,
+                pos_y: 0.0
+            }
         }
     }
 
@@ -321,8 +349,52 @@ impl rsml::Window for MainWindow {
                 MainWindow::position_camera(&mut context.camera.borrow_mut(), size.width, size.height);
                 scene.resize(size.width, size.height);
             }
+            winit::event::WindowEvent::MouseInput{
+                state,
+                button,
+                ..
+            } => {
+
+                if button == winit::event::MouseButton::Left {
+
+                    if state == winit::event::ElementState::Pressed {
+                        self.mouse_state.left_button_pressed = true;
+                    } else {
+                        self.mouse_state.left_button_pressed = false;
+                    }
+
+                    self.handle_mouse_event(self.mouse_state.clone());
+
+                } else if button == winit::event::MouseButton::Right {
+
+                    if state == winit::event::ElementState::Pressed {
+                        self.mouse_state.right_button_pressed = true;
+                    } else {
+                        self.mouse_state.right_button_pressed = false;
+                    }
+
+                    self.handle_mouse_event(self.mouse_state.clone());
+                }
+
+            }
+            winit::event::WindowEvent::CursorMoved { position, .. } => {
+
+                self.mouse_state.pos_x = position.x as f32;
+                self.mouse_state.pos_y = position.y as f32;
+
+                self.handle_mouse_event(self.mouse_state.clone());
+            }
             _ => {}
         }
+    }
+}
+
+
+impl MainWindow {
+
+    fn handle_mouse_event(&mut self, mouse_event: MouseEvent) {
+
+        println!("Mouse: {:?}", mouse_event);
     }
 }
 
