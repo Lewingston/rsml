@@ -8,9 +8,9 @@ use std::rc::Rc;
 use std::cell::RefCell;
 
 
-const CELL_SIZE: usize = 16;
+const CELL_SIZE: usize = 13;
 const BLACK: rsml::Color = rsml::Color { r: 4, g: 4, b: 4, a: 255 };
-const WHITE: rsml::Color = rsml::Color { r: 240, g: 240, b: 240, a: 255 };
+const WHITE: rsml::Color = rsml::Color { r: 200, g: 200, b: 200, a: 255 };
 
 
 struct MyApp {
@@ -91,6 +91,17 @@ impl Scene {
 
         self.game.handle_mouse_event(mouse_event);
     }
+
+
+    pub fn key_pressed(&mut self, key: winit::keyboard::KeyCode) {
+
+        use winit::keyboard::KeyCode as KeyCode;
+
+        if key == KeyCode::KeyS {
+
+            self.game.make_step();
+        }
+    }
 }
 
 
@@ -148,22 +159,82 @@ impl GameOfLife {
 
             if mouse_event.left_button_pressed && !mouse_event.right_button_pressed {
 
-                self.set_cell(x, y, true);
+                self.cells[y][x] = true;
+                self.mesh.set_cell(x, y, true);
                 self.mesh.update();
 
             } else if mouse_event.right_button_pressed && !mouse_event.left_button_pressed {
 
-                self.set_cell(x, y, false);
+                self.cells[y][x] = false;
+                self.mesh.set_cell(x, y, false);
                 self.mesh.update();
             }
         }
     }
 
 
-    fn set_cell(&mut self, x: usize, y: usize, state: bool) {
+    fn make_step(&mut self) {
 
-        self.cells[y][x] = state;
-        self.mesh.set_cell(x, y, state);
+        let mut new_cells: Vec<Vec<bool>> = vec![vec![false; self.width]; self.height];
+
+        for y in 0..self.height {
+            for x in 0..self.width {
+
+                let count = self.count_life_neighbours(x, y);
+
+                if self.is_alive(x as i32, y as i32) &&
+                   count < 2 || count > 3 {
+
+                    new_cells[y][x] = false;
+                    self.mesh.set_cell(x, y, false);
+
+                } else if !self.is_alive(x as i32, y as i32) && count == 3 {
+
+                    new_cells[y][x] = true;
+                    self.mesh.set_cell(x, y, true);
+
+                } else {
+
+                    new_cells[y][x] = self.cells[y][x];
+                }
+            }
+        }
+
+        self.cells = new_cells;
+
+        self.mesh.update();
+    }
+
+
+    fn count_life_neighbours(&self, x: usize, y: usize) -> u8 {
+
+        let mut count = 0;
+
+        let x = x as i32;
+        let y = y as i32;
+
+        for iy in -1..2 {
+            for ix in -1..2 {
+                if ix != 0 || iy != 0 {
+                    count += if self.is_alive(x + ix, y + iy) { 1 } else { 0 };
+                }
+            }
+        }
+
+        count
+    }
+
+
+    fn is_alive(&self, x: i32, y: i32) -> bool {
+
+        if x > 0 && x < self.width as i32 {
+            if y > 0 && y < self.height as i32 {
+
+                return self.cells[y as usize][x as usize];
+            }
+        }
+
+        false
     }
 }
 
@@ -450,6 +521,19 @@ impl rsml::Window for MainWindow {
                 self.mouse_state.pos_y = position.y as f32;
 
                 self.handle_mouse_event(self.mouse_state.clone());
+            }
+            winit::event::WindowEvent::KeyboardInput {
+                event: winit::event::KeyEvent {
+                    physical_key: winit::keyboard::PhysicalKey::Code(code),
+                    state:        key_state,
+                    ..
+                },
+                ..
+            } => {
+
+                if key_state.is_pressed() {
+                    scene.key_pressed(code);
+                }
             }
             _ => {}
         }
