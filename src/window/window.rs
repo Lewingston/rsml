@@ -23,9 +23,6 @@ use std::sync::Arc;
 use std::rc::Rc;
 use std::cell::RefCell;
 
-use std::time::Instant;
-use std::time::Duration;
-
 
 pub trait Window {
 
@@ -156,7 +153,8 @@ impl WindowHandler {
             surface_config,
             camera,
             depth_texture,
-            config
+            config,
+            frame_monitor: FrameMonitor::new()
         };
 
         window_handler.start();
