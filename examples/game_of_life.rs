@@ -1,4 +1,6 @@
 
+use wgpu::util::DeviceExt;
+
 use rsml::drawable::drawable::Color;
 use rsml::drawable::drawable::Drawable;
 
@@ -41,7 +43,7 @@ impl Scene {
 
         let layout = fontdue::layout::LayoutSettings::default();
 
-        let mut frame_count = rsml::Text::new("LOL12345678", font, 16.0, Some(layout));
+        let mut frame_count = rsml::Text::new("-", font, 16.0, Some(layout));
         frame_count.set_color(Color { r: 240, g: 240, b: 240, a: 255 });
         frame_count.get_transform().translate(cgmath::Vector3::<f32>{x: 0.0, y: window_height as f32, z: 1.0});
 
@@ -87,9 +89,9 @@ impl Scene {
 struct GameOfLife {
 
     cells:       Vec<Vec<bool>>,
-    sprites:     Vec<Vec<rsml::Shape>>,
+    mesh:        Mesh,
     width:       usize,
-    height:      usize,
+    height:      usize
 }
 
 
@@ -100,29 +102,11 @@ impl GameOfLife {
         let width:  usize = width  as usize / CELL_SIZE;
         let height: usize = height as usize / CELL_SIZE;
 
-        let mut sprites: Vec<Vec<rsml::Shape>> = Vec::new();
-
-        for x in 0..width {
-            let mut row: Vec<rsml::Shape> = Vec::new();
-            for y in 0..height {
-
-                let mut sprite = rsml::Shape::create_rectangle((CELL_SIZE - 1) as f32, (CELL_SIZE - 1) as f32);
-                sprite.set_color(Color { r: 4, g: 4, b: 4, a: 255 });
-
-                let pos_x = CELL_SIZE as f32 * (x as f32 + 0.5);
-                let pos_y = CELL_SIZE as f32 * (y as f32 + 0.5);
-                sprite.get_transform().translate(cgmath::Vector3::<f32>{ x: pos_x, y: pos_y, z: 0.0 });
-
-                row.push(sprite);
-            }
-            sprites.push(row);
-        }
-
-        println!("Cell count: {}", width * height);
+        println!("Width: {width} - Height: {height} - Total: {}", width * height);
 
         Self {
             cells: vec![vec![false; width]; height],
-            sprites,
+            mesh: Mesh::new(width, height, CELL_SIZE as f32, CELL_SIZE as f32),
             width,
             height
         }
@@ -131,11 +115,139 @@ impl GameOfLife {
 
     fn draw(&self, render_target: &mut rsml::RenderTarget) {
 
-        for row in &self.sprites {
-            for sprite in row {
-                sprite.draw(render_target);
-            }
+        self.mesh.draw(render_target);
+    }
+}
+
+
+struct Mesh {
+
+    width: usize,
+    height: usize,
+
+    vertex_buffer: wgpu::Buffer,
+    index_buffer: wgpu::Buffer,
+
+    transform: rsml::Transform,
+
+    vertices: Vec<rsml::Vertex>
+}
+
+
+impl Mesh {
+
+    pub fn new(width: usize, height: usize, cell_width: f32, cell_height: f32) -> Self {
+
+        let vertices = Self::create_vertices(width, height, cell_width, cell_height);
+
+        Self {
+            transform: rsml::Transform::new(rsml::Renderer::get().get_device()),
+            width,
+            height,
+            vertex_buffer: Self::create_vertex_buffer(&vertices),
+            index_buffer:  Self::create_index_buffer(width, height),
+            vertices
         }
+    }
+
+
+    fn create_vertices(width: usize, height: usize, cell_width: f32, cell_height: f32) -> Vec<rsml::Vertex> {
+
+        let mut vertices: Vec<rsml::Vertex> = Vec::with_capacity(width * height * 4);
+
+        let mut pos_x: f32 = 0.0;
+        let mut pos_y: f32 = 0.0;
+
+        let offset: f32 = 1.0;
+
+        for _y in 0..height {
+            for _x in 0..width {
+
+                vertices.push(Self::create_vertex(pos_x, pos_y));
+                vertices.push(Self::create_vertex(pos_x + cell_width - offset, pos_y));
+                vertices.push(Self::create_vertex(pos_x, pos_y + cell_height - offset));
+                vertices.push(Self::create_vertex(pos_x + cell_width - offset, pos_y + cell_height - offset));
+
+                pos_x += cell_width;
+            }
+
+            pos_y += cell_height;
+            pos_x = 0.0;
+        }
+
+        vertices
+    }
+
+
+    fn create_vertex_buffer(vertices: &[rsml::Vertex]) -> wgpu::Buffer {
+
+        rsml::Renderer::get().get_device().create_buffer_init(
+            &wgpu::util::BufferInitDescriptor {
+                label:    Some("gol_mesh_vertex_buffer"),
+                contents: bytemuck::cast_slice(vertices),
+                usage:    wgpu::BufferUsages::VERTEX
+            }
+        )
+    }
+
+
+    fn create_index_buffer(width: usize, height: usize) -> wgpu::Buffer {
+
+        let mut indices: Vec<u32> = Vec::with_capacity(width * height * 6);
+
+        let cell_count: u32 = (width * height) as u32;
+
+        for ii in 0..cell_count {
+
+            indices.push(ii * 4 + 0);
+            indices.push(ii * 4 + 1);
+            indices.push(ii * 4 + 2);
+            indices.push(ii * 4 + 2);
+            indices.push(ii * 4 + 1);
+            indices.push(ii * 4 + 3);
+        }
+
+        rsml::Renderer::get().get_device().create_buffer_init(
+            &wgpu::util::BufferInitDescriptor {
+                label:    Some("gol_mesh_index_buffer"),
+                contents: bytemuck::cast_slice(&indices),
+                usage:    wgpu::BufferUsages::INDEX
+            }
+        )
+    }
+
+
+    fn create_vertex(x: f32, y: f32) -> rsml::Vertex {
+
+        rsml::Vertex {
+            position:    [x, y, 0.0],
+            texture_pos: [0.0, 0.0],
+            color:       Color { r: 4, g: 4, b: 4, a: 255 }
+        }
+    }
+
+
+    pub fn draw(&self, render_target: &mut rsml::RenderTarget)
+    {
+
+        let camera = render_target.get_camera();
+
+        let pass: &mut wgpu::RenderPass = render_target.get_render_pass();
+
+        pass.set_pipeline(rsml::Renderer::get().get_default_color_render_pipeline().as_ref());
+
+        // TODO: Bind transform
+        pass.set_bind_group(0, self.transform.get_bind_group(), &[]);
+
+        pass.set_bind_group(1, camera.borrow().get_bind_group(), &[]);
+
+        pass.set_vertex_buffer(0, self.vertex_buffer.slice(..));
+
+        pass.set_index_buffer(self.index_buffer.slice(..), wgpu::IndexFormat::Uint32);
+
+        let index_count = (self.width * self.height * 6) as u32;
+
+        pass.draw_indexed(0..index_count, 0, 0..1);
     }
 }
 
