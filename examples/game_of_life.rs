@@ -9,6 +9,8 @@ use std::cell::RefCell;
 
 
 const CELL_SIZE: usize = 16;
+const BLACK: rsml::Color = rsml::Color { r: 4, g: 4, b: 4, a: 255 };
+const WHITE: rsml::Color = rsml::Color { r: 240, g: 240, b: 240, a: 255 };
 
 
 struct MyApp {
@@ -83,6 +85,12 @@ impl Scene {
 
         self.game = GameOfLife::new(width, height);
     }
+
+
+    pub fn handle_mouse_event(&mut self, mouse_event: &MouseEvent) {
+
+        self.game.handle_mouse_event(mouse_event);
+    }
 }
 
 
@@ -91,7 +99,9 @@ struct GameOfLife {
     cells:       Vec<Vec<bool>>,
     mesh:        Mesh,
     width:       usize,
-    height:      usize
+    height:      usize,
+    offset_x:    f32,
+    offset_y:    f32,
 }
 
 
@@ -104,17 +114,19 @@ impl GameOfLife {
 
         println!("Width: {cells_x} - Height: {cells_y} - Total: {}", cells_x * cells_y);
 
-        let offset_x = width - cells_x as u32 * CELL_SIZE as u32;
-        let offset_y = height - cells_y as u32 * CELL_SIZE as u32;
+        let offset_x = (width - cells_x as u32 * CELL_SIZE as u32) as f32 / 2.0;
+        let offset_y = (height - cells_y as u32 * CELL_SIZE as u32) as f32 / 2.0;
 
         let mut mesh = Mesh::new(cells_x, cells_y, CELL_SIZE as f32, CELL_SIZE as f32);
-        mesh.set_offset(offset_x as f32 / 2.0, offset_y as f32 / 2.0);
+        mesh.set_offset(offset_x, offset_y);
 
         Self {
             cells:  vec![vec![false; cells_x]; cells_y],
             mesh,
             width:  cells_x,
-            height: cells_y
+            height: cells_y,
+            offset_x,
+            offset_y
         }
     }
 
@@ -122,6 +134,36 @@ impl GameOfLife {
     fn draw(&self, render_target: &mut rsml::RenderTarget) {
 
         self.mesh.draw(render_target);
+    }
+
+
+    fn handle_mouse_event(&mut self, mouse_event: &MouseEvent) {
+
+        let x = (mouse_event.pos_x - self.offset_x) as usize / CELL_SIZE;
+        let mut y = self.height - (mouse_event.pos_y - self.offset_y) as usize / CELL_SIZE;
+
+        if y > 0 { y -= 1; }
+
+        if x < self.width && y < self.height {
+
+            if mouse_event.left_button_pressed && !mouse_event.right_button_pressed {
+
+                self.set_cell(x, y, true);
+                self.mesh.update();
+
+            } else if mouse_event.right_button_pressed && !mouse_event.left_button_pressed {
+
+                self.set_cell(x, y, false);
+                self.mesh.update();
+            }
+        }
+    }
+
+
+    fn set_cell(&mut self, x: usize, y: usize, state: bool) {
+
+        self.cells[y][x] = state;
+        self.mesh.set_cell(x, y, state);
     }
 }
 
@@ -197,7 +239,7 @@ impl Mesh {
             &wgpu::util::BufferInitDescriptor {
                 label:    Some("gol_mesh_vertex_buffer"),
                 contents: bytemuck::cast_slice(vertices),
-                usage:    wgpu::BufferUsages::VERTEX
+                usage:    wgpu::BufferUsages::VERTEX | wgpu::BufferUsages::COPY_DST
             }
         )
     }
@@ -234,7 +276,7 @@ impl Mesh {
         rsml::Vertex {
             position:    [x, y, 0.0],
             texture_pos: [0.0, 0.0],
-            color:       Color { r: 4, g: 4, b: 4, a: 255 }
+            color:       BLACK
         }
     }
 
@@ -259,6 +301,31 @@ impl Mesh {
         let index_count = (self.width * self.height * 6) as u32;
 
         pass.draw_indexed(0..index_count, 0, 0..1);
+    }
+
+
+    fn set_cell(&mut self, x: usize, y: usize, state: bool) {
+
+        if x >= self.width || y >= self.height {
+            return;
+        }
+
+        let index = (y * self.width + x) * 4;
+
+        self.vertices[index + 0].color = if state { WHITE } else { BLACK };
+        self.vertices[index + 1].color = if state { WHITE } else { BLACK };
+        self.vertices[index + 2].color = if state { WHITE } else { BLACK };
+        self.vertices[index + 3].color = if state { WHITE } else { BLACK };
+    }
+
+
+    fn update(&self) {
+
+        rsml::Renderer::get().get_queue().write_buffer(
+            &self.vertex_buffer,
+            0,
+            bytemuck::cast_slice(&self.vertices)
+        );
     }
 }
 
@@ -394,7 +461,9 @@ impl MainWindow {
 
     fn handle_mouse_event(&mut self, mouse_event: MouseEvent) {
 
-        println!("Mouse: {:?}", mouse_event);
+        let Some(scene) = &mut self.scene else { return; };
+
+        scene.handle_mouse_event(&mouse_event);
     }
 }
 
