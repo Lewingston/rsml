@@ -1,0 +1,61 @@
+
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8" />
+        <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <title>RSML Demo</title>
+        <style>
+            html, body {
+                overflow: hidden;
+            }
+            body {
+                display: flex;
+                justify-content: center;
+                background-color: rgb(12, 12, 13);
+            }
+            * {
+                padding: 0;
+                margin: 0;
+            }
+            canvas {
+                background-color: black;
+            }
+            canvas:focus {
+                outline: none;
+            }
+        </style>
+    </head>
+
+    <body id="rsml-demo">
+        <canvas id="canvas"></canvas>
+        <script type="module">
+            import init from "./pkg/{*EXAMPLE_NAME*}.js";
+            init().then(() => {
+                console.log("WASM Loaded");
+            });
+        </script>
+        <script>
+            const canvas = document.getElementById("canvas");
+
+            function resizeCanvas() {
+
+                const maxSize = 2048;
+                const dpr = window.devicePixelRatio || 1;
+
+                const width = Math.min(window.innerWidth, maxSize);
+                const height = Math.min(window.innerHeight, maxSize);
+
+                canvas.wdith = width;
+                canvas.height = height;
+
+                canvas.style.width = width + "px";
+                canvas.style.height = height + "px";
+            }
+
+            window.addEventListener("resize", resizeCanvas);
+            resizeCanvas();
+        </script>
+    </body>
+</html>
