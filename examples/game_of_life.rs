@@ -29,8 +29,11 @@ impl rsml::App for MyApp {
 
 struct Scene {
 
-    game:        GameOfLife,
-    frame_count: rsml::Text
+    game:          GameOfLife,
+    frame_count:   rsml::Text,
+    info_bar:      rsml::Text,
+    window_width:  u32,
+    window_height: u32
 }
 
 
@@ -38,6 +41,7 @@ impl Scene {
 
     fn new(width: u32, height: u32) -> Option<Self> {
 
+        let window_width  = width;
         let window_height = height;
 
         let Ok(font) = rsml::Font::from_bytes(include_bytes!("./roboto.ttf")) else { return None; };
@@ -45,14 +49,29 @@ impl Scene {
 
         let layout = fontdue::layout::LayoutSettings::default();
 
-        let mut frame_count = rsml::Text::new("-", font, 16.0, Some(layout));
-        frame_count.set_color(Color { r: 240, g: 240, b: 240, a: 255 });
-        frame_count.get_transform().translate(cgmath::Vector3::<f32>{x: 0.0, y: window_height as f32, z: 1.0});
+        let mut frame_count = rsml::Text::new("-", font.clone(), 14.0, Some(layout));
+        frame_count.set_color(WHITE);
+        Self::set_fps_pos(&mut frame_count, window_width, window_height);
+
+        let mut info_bar = rsml::Text::new(&Self::create_info_bar_text(), font, 14.0, Some(layout));
+        info_bar.set_color(WHITE);
+        info_bar.get_transform().translate(cgmath::Vector3::<f32>{ x: 10.0, y: 20.0, z: 1.0 });
 
         Some(Self {
-            game: GameOfLife::new(width, height),
-            frame_count
+            game: Self::create_game(width, height),
+            frame_count,
+            info_bar,
+            window_width,
+            window_height
         })
+    }
+
+
+    fn create_game(width: u32, height: u32) -> GameOfLife {
+
+        let bar_height = 22.0;
+
+        GameOfLife::new(width, height - bar_height as u32, 0.0, bar_height)
     }
 
 
@@ -63,7 +82,7 @@ impl Scene {
         if frame_time > 0.0 {
 
             let frame_rate = 1_000_000.0 / frame_time;
-            self.frame_count.set_text(&format!("{:.2}", frame_rate));
+            self.frame_count.set_text(&format!("FPS: {:.2}", frame_rate));
 
         } else {
 
@@ -72,24 +91,52 @@ impl Scene {
     }
 
 
+    fn create_info_bar_text() -> String {
+
+        String::from("Next Step: [ s ]   Reset: [ x ]   Run/Pause [ SPACE ]")
+    }
+
+
     fn draw(&mut self, render_target: &mut rsml::RenderTarget) {
 
         self.game.draw(render_target);
         self.frame_count.draw(render_target);
+        self.info_bar.draw(render_target);
     }
 
 
     pub fn resize(&mut self, width: u32, height: u32) {
 
-        self.frame_count.get_transform().set_pos(cgmath::Point3::<f32>{x: 0.0, y: height as f32, z: 1.0});
+        self.window_width  = width;
+        self.window_height = height;
 
-        self.game = GameOfLife::new(width, height);
+        Self::set_fps_pos(&mut self.frame_count, width, height);
+
+        self.game = Self::create_game(width, height);
+
+    }
+
+
+    fn set_fps_pos(frame_count: &mut rsml::Text, width: u32, _height: u32) {
+
+        frame_count.get_transform().set_pos(
+            cgmath::Point3::<f32>{
+                x: width as f32 - 80.0,
+                y: 20.0,
+                z: 1.0
+            }
+        );
     }
 
 
     pub fn handle_mouse_event(&mut self, mouse_event: &MouseEvent) {
 
-        self.game.handle_mouse_event(mouse_event);
+        self.game.handle_mouse_event(&MouseEvent {
+            left_button_pressed:  mouse_event.left_button_pressed,
+            right_button_pressed: mouse_event.right_button_pressed,
+            pos_x:                mouse_event.pos_x,
+            pos_y:                self.window_height as f32 - mouse_event.pos_y
+        });
     }
 
 
@@ -107,18 +154,18 @@ impl Scene {
 
 struct GameOfLife {
 
-    cells:       Vec<Vec<bool>>,
-    mesh:        Mesh,
-    width:       usize,
-    height:      usize,
-    offset_x:    f32,
-    offset_y:    f32,
+    cells:  Vec<Vec<bool>>,
+    mesh:   Mesh,
+    width:  usize,
+    height: usize,
+    pos_x:  f32,
+    pos_y:  f32,
 }
 
 
 impl GameOfLife {
 
-    fn new(width: u32, height: u32) -> Self {
+    fn new(width: u32, height: u32, pos_x: f32, pos_y: f32) -> Self {
 
         let cells_x: usize = width  as usize / CELL_SIZE;
         let cells_y: usize = height as usize / CELL_SIZE;
@@ -128,16 +175,19 @@ impl GameOfLife {
         let offset_x = (width - cells_x as u32 * CELL_SIZE as u32) as f32 / 2.0;
         let offset_y = (height - cells_y as u32 * CELL_SIZE as u32) as f32 / 2.0;
 
+        let pos_x = pos_x + offset_x;
+        let pos_y = pos_y + offset_y;
+
         let mut mesh = Mesh::new(cells_x, cells_y, CELL_SIZE as f32, CELL_SIZE as f32);
-        mesh.set_offset(offset_x, offset_y);
+        mesh.set_offset(pos_x, pos_y);
 
         Self {
             cells:  vec![vec![false; cells_x]; cells_y],
             mesh,
             width:  cells_x,
             height: cells_y,
-            offset_x,
-            offset_y
+            pos_x,
+            pos_y
         }
     }
 
@@ -150,10 +200,19 @@ impl GameOfLife {
 
     fn handle_mouse_event(&mut self, mouse_event: &MouseEvent) {
 
-        let x = (mouse_event.pos_x - self.offset_x) as usize / CELL_SIZE;
-        let mut y = self.height - (mouse_event.pos_y - self.offset_y) as usize / CELL_SIZE;
+        let width  = (self.width  * CELL_SIZE) as f32;
+        let height = (self.height * CELL_SIZE) as f32;
 
-        if y > 0 { y -= 1; }
+        if mouse_event.pos_x < self.pos_x ||
+           mouse_event.pos_x > self.pos_x + width ||
+           mouse_event.pos_y < self.pos_y ||
+           mouse_event.pos_y > self.pos_y + height {
+
+               return;
+        }
+
+        let x = (mouse_event.pos_x - self.pos_x) as usize / CELL_SIZE;
+        let y = (mouse_event.pos_y - self.pos_y) as usize / CELL_SIZE;
 
         if x < self.width && y < self.height {
 
@@ -227,8 +286,8 @@ impl GameOfLife {
 
     fn is_alive(&self, x: i32, y: i32) -> bool {
 
-        if x > 0 && x < self.width as i32 {
-            if y > 0 && y < self.height as i32 {
+        if x >= 0 && x < self.width as i32 {
+            if y >= 0 && y < self.height as i32 {
 
                 return self.cells[y as usize][x as usize];
             }
