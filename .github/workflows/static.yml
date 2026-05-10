@@ -1,0 +1,72 @@
+# Simple workflow for deploying static content to GitHub Pages
+name: Deploy example pages
+
+on:
+  # Runs on pushes targeting the default branch
+  push:
+    branches: ["main"]
+
+  # Allows you to run this workflow manually from the Actions tab
+  workflow_dispatch:
+
+# Sets permissions of the GITHUB_TOKEN to allow deployment to GitHub Pages
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+# Allow only one concurrent deployment, skipping runs queued between the run in-progress and latest queued.
+# However, do NOT cancel in-progress runs as we want to allow these production deployments to complete.
+concurrency:
+  group: "pages"
+  cancel-in-progress: false
+
+jobs:
+
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install target wasm32
+        run: rustup target add wasm32-unknown-unknown
+      - name: Install wasm-bindgen-cli
+        run: cargo install wasm-bindgen-cli
+      - name: Build 3d scene example
+        id: build_scene_3d
+        run: |
+          cargo build --example scene_3d --target wasm32-unknown-unknown --release
+          wasm-bindgen target/wasm32-unknown-unknown/release/examples/scene_3d.wasm --out-dir pkg_deploy --target web
+          sed 's/{\*EXAMPLE_NAME\*}/scene_3d/g' examples/page.html > pkg_deploy/scene_3d.html
+      - name: Build text rendering example
+        id: build_text_rendering
+        run: |
+          cargo build --example text_rendering --target wasm32-unknown-unknown --release
+          wasm-bindgen target/wasm32-unknown-unknown/release/examples/text_rendering.wasm --out-dir pkg_deploy --target web
+          sed 's/{\*EXAMPLE_NAME\*}/text_rendering/g' examples/page.html > pkg_deploy/text_rendering.html
+      - name: Build game of life example
+        id: build_game_of_life
+        run: |
+          cargo build --example game_of_life --target wasm32-unknown-unknown --release
+          wasm-bindgen target/wasm32-unknown-unknown/release/examples/game_of_life.wasm --out-dir pkg_deploy --target web
+          sed 's/{\*EXAMPLE_NAME\*}/game_of_life/g' examples/page.html > pkg_deploy/game_of_life.html
+      - name: Upload generated files
+        id: deployment
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: pkg_deploy/
+          
+          
+
+  # Single deploy job since we're just deploying
+  deploy:
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    runs-on: ubuntu-latest
+    needs: build
+    steps:
+      - name: Setup Pages
+        uses: actions/configure-pages@v5
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v5
