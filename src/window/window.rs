@@ -216,6 +216,7 @@ impl WindowHandler {
 
     pub fn draw(&mut self) {
 
+        self.frame_monitor.end_frame();
         self.frame_monitor.start_frame();
 
         self.winit_window.request_redraw();
@@ -283,8 +284,6 @@ impl WindowHandler {
 
         Renderer::get().get_queue().submit(std::iter::once(encoder.finish()));
         output.present();
-
-        self.frame_monitor.end_frame();
     }
 
 
