@@ -49,7 +49,7 @@ jobs:
           sed 's/{\*EXAMPLE_NAME\*}/game_of_life/g' examples/page.html > pkg_deploy/game_of_life.html
       - name: Upload generated files
         id: deployment
-        uses: actions/upload-pages-artifacts@v3
+        uses: actions/upload-pages-artifact@v3
         with:
           path: pkg_deploy/
           
