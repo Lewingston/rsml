@@ -47,13 +47,22 @@ impl Scene {
         let Ok(font) = rsml::Font::from_bytes(include_bytes!("./roboto.ttf")) else { return None; };
         let font = Rc::new(RefCell::new(font));
 
-        let layout = fontdue::layout::LayoutSettings::default();
+        let frame_count_layout = fontdue::layout::LayoutSettings {
+            x: 0.0,
+            y: 0.0,
+            max_width: Some(250.0),
+            max_height: Some(22.0),
+            horizontal_align: fontdue::layout::HorizontalAlign::Right,
+            vertical_align: fontdue::layout::VerticalAlign::Middle,
+            ..fontdue::layout::LayoutSettings::default()
+        };
 
-        let mut frame_count = rsml::Text::new("-", font.clone(), 14.0, Some(layout));
+        let mut frame_count = rsml::Text::new("-", font.clone(), 14.0, Some(frame_count_layout));
         frame_count.set_color(WHITE);
         Self::set_fps_pos(&mut frame_count, window_width, window_height);
 
-        let mut info_bar = rsml::Text::new(&Self::create_info_bar_text(), font, 14.0, Some(layout));
+        let info_bar_layout = fontdue::layout::LayoutSettings::default();
+        let mut info_bar = rsml::Text::new(&Self::create_info_bar_text(), font, 14.0, Some(info_bar_layout));
         info_bar.set_color(WHITE);
         info_bar.get_transform().translate(cgmath::Vector3::<f32>{ x: 10.0, y: 20.0, z: 1.0 });
 
@@ -121,7 +130,7 @@ impl Scene {
 
         frame_count.get_transform().set_pos(
             cgmath::Point3::<f32>{
-                x: width as f32 - 80.0,
+                x: width as f32 - 255.0,
                 y: 20.0,
                 z: 1.0
             }
