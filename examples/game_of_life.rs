@@ -33,7 +33,8 @@ struct Scene {
     frame_count:   rsml::Text,
     info_bar:      rsml::Text,
     window_width:  u32,
-    window_height: u32
+    window_height: u32,
+    game_running:  bool,
 }
 
 
@@ -71,14 +72,17 @@ impl Scene {
             frame_count,
             info_bar,
             window_width,
-            window_height
+            window_height,
+            game_running: false
         })
     }
 
 
     fn create_game(width: u32, height: u32) -> GameOfLife {
 
-        let bar_height = 22.0;
+
+        let h = height as f32;
+        let bar_height = h.min(22.0);
 
         GameOfLife::new(width, height - bar_height as u32, 0.0, bar_height)
     }
@@ -107,6 +111,10 @@ impl Scene {
 
 
     fn draw(&mut self, render_target: &mut rsml::RenderTarget) {
+
+        if self.game_running {
+            self.game.make_step();
+        }
 
         self.game.draw(render_target);
         self.frame_count.draw(render_target);
@@ -153,9 +161,18 @@ impl Scene {
 
         use winit::keyboard::KeyCode as KeyCode;
 
-        if key == KeyCode::KeyS {
-
-            self.game.make_step();
+        match key {
+            KeyCode::KeyS  => {
+                self.game.make_step();
+            }
+            KeyCode::KeyX  => {
+                self.game_running = false;
+                self.game = Self::create_game(self.window_width, self.window_height);
+            }
+            KeyCode::Space => {
+                self.game_running = !self.game_running;
+            }
+            _ => {}
         }
     }
 }
@@ -163,12 +180,12 @@ impl Scene {
 
 struct GameOfLife {
 
-    cells:  Vec<Vec<bool>>,
-    mesh:   Mesh,
-    width:  usize,
-    height: usize,
-    pos_x:  f32,
-    pos_y:  f32,
+    cells:   Vec<Vec<bool>>,
+    mesh:    Mesh,
+    width:   usize,
+    height:  usize,
+    pos_x:   f32,
+    pos_y:   f32,
 }
 
 
@@ -196,7 +213,7 @@ impl GameOfLife {
             width:  cells_x,
             height: cells_y,
             pos_x,
-            pos_y
+            pos_y,
         }
     }
 
