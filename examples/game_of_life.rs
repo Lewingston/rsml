@@ -127,6 +127,8 @@ impl Scene {
         self.window_width  = width;
         self.window_height = height;
 
+        self.game_running = false;
+
         Self::set_fps_pos(&mut self.frame_count, width, height);
 
         self.game = Self::create_game(width, height);
