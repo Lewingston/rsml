@@ -32,4 +32,7 @@ pub use renderer::render_target::RenderTarget;
 pub use renderer::renderer::Renderer;
 pub use renderer::camera::Camera;
 
+pub use winit;
+pub use cgmath;
+
 mod error;
