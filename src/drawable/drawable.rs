@@ -234,6 +234,95 @@ impl Shape {
     }
 
 
+    #[must_use]
+    pub fn create_cube() -> Self {
+
+        let front_color  = Color::random();
+        let top_color    = Color::random();
+        let bottom_color = Color::random();
+        let back_color   = Color::random();
+        let left_color   = Color::random();
+        let right_color  = Color::random();
+        let texture_pos: [f32; 2] = [ 0.0, 0.0 ];
+
+        let vert = vec![
+
+            // front face
+            Vertex { position: [ -0.5,  0.5,  0.5 ], texture_pos, color: front_color },
+            Vertex { position: [  0.5,  0.5,  0.5 ], texture_pos, color: front_color },
+            Vertex { position: [  0.5, -0.5,  0.5 ], texture_pos, color: front_color },
+            Vertex { position: [ -0.5, -0.5,  0.5 ], texture_pos, color: front_color },
+
+            // top face
+            Vertex { position: [ -0.5,  0.5,  0.5 ], texture_pos, color: top_color },
+            Vertex { position: [  0.5,  0.5,  0.5 ], texture_pos, color: top_color },
+            Vertex { position: [  0.5,  0.5, -0.5 ], texture_pos, color: top_color },
+            Vertex { position: [ -0.5,  0.5, -0.5 ], texture_pos, color: top_color },
+
+            // bottom face
+            Vertex { position: [ -0.5, -0.5,  0.5 ], texture_pos, color: bottom_color },
+            Vertex { position: [  0.5, -0.5,  0.5 ], texture_pos, color: bottom_color },
+            Vertex { position: [  0.5, -0.5, -0.5 ], texture_pos, color: bottom_color },
+            Vertex { position: [ -0.5, -0.5, -0.5 ], texture_pos, color: bottom_color },
+
+            // back face
+            Vertex { position: [ -0.5,  0.5, -0.5 ], texture_pos, color: back_color },
+            Vertex { position: [  0.5,  0.5, -0.5 ], texture_pos, color: back_color },
+            Vertex { position: [  0.5, -0.5, -0.5 ], texture_pos, color: back_color },
+            Vertex { position: [ -0.5, -0.5, -0.5 ], texture_pos, color: back_color },
+
+            // left face
+            Vertex { position: [ -0.5,  0.5,  0.5 ], texture_pos, color: left_color },
+            Vertex { position: [ -0.5,  0.5, -0.5 ], texture_pos, color: left_color },
+            Vertex { position: [ -0.5, -0.5, -0.5 ], texture_pos, color: left_color },
+            Vertex { position: [ -0.5, -0.5,  0.5 ], texture_pos, color: left_color },
+
+            // right face
+            Vertex { position: [  0.5,  0.5,  0.5 ], texture_pos, color: right_color },
+            Vertex { position: [  0.5,  0.5, -0.5 ], texture_pos, color: right_color },
+            Vertex { position: [  0.5, -0.5, -0.5 ], texture_pos, color: right_color },
+            Vertex { position: [  0.5, -0.5,  0.5 ], texture_pos, color: right_color },
+        ];
+
+        let indices: &[u16] = &[
+
+            // front face
+            2, 1, 0,
+            0, 3, 2,
+
+            // top face
+            4, 5, 6,
+            6, 7, 4,
+
+            // bottom face
+            10,  9,  8,
+             8, 11, 10,
+
+            // back face
+            12, 13, 14,
+            14, 15, 12,
+
+            // left face
+            16, 17, 19,
+            17, 18, 19,
+
+            // right face
+            22, 21, 20,
+            23, 22, 20
+        ];
+
+        Self {
+            transform:       Transform::new(Renderer::get().get_device()),
+            vertex_buffer:   Self::create_vertex_buffer(&vert),
+            index_buffer:    Self::create_index_buffer(Renderer::get().get_device(), indices),
+            vertices:        vert,
+            index_count:     indices.len(),
+            render_pipeline: Renderer::get().get_default_color_render_pipeline(),
+            texture:         None
+        }
+    }
+
+
     pub fn set_color(&mut self, color: Color) {
 
         for vertex in &mut self.vertices {
