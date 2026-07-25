@@ -47,6 +47,7 @@ impl FrameMonitor {
     }
 
 
+    #[must_use]
     pub fn get_frame_time(&self) -> Duration {
 
         let mut total_duration = Duration::new(0, 0);
@@ -61,5 +62,12 @@ impl FrameMonitor {
         } else {
             total_duration / self.timing_queue.len() as u32
         }
+    }
+
+
+    #[must_use]
+    pub fn get_fps(&self) -> f32 {
+
+        1.0 / self.get_frame_time().as_secs_f32()
     }
 }
