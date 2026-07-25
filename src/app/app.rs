@@ -136,6 +136,8 @@ impl<T: App + 'static> ApplicationHandler<RsmlAppEvent> for AppHandler<T> {
             window_manager: &mut self.window_manager,
         };
 
+        event_loop.set_control_flow(winit::event_loop::ControlFlow::Poll);
+
         self.app.start(&mut context);
     }
 
@@ -156,8 +158,8 @@ impl<T: App + 'static> ApplicationHandler<RsmlAppEvent> for AppHandler<T> {
     fn window_event(
         &mut self,
         event_loop: &ActiveEventLoop,
-        window_id: winit::window::WindowId,
-        event: WindowEvent)
+        window_id:  winit::window::WindowId,
+        event:      WindowEvent)
     {
 
         match event {
