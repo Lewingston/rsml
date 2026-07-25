@@ -34,5 +34,6 @@ pub use renderer::camera::Camera;
 
 pub use winit;
 pub use cgmath;
+pub use wgpu;
 
 mod error;
