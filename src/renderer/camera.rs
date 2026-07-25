@@ -59,7 +59,7 @@ impl Camera {
 
 
     #[must_use]
-    pub fn new(width: u32, height: u32) -> Self {
+    pub fn new(width: f32, height: f32) -> Self {
 
         let parameters = CameraParameters::default(width, height);
 
@@ -95,16 +95,15 @@ impl Camera {
 
 impl CameraParameters {
 
-
     #[must_use]
-    pub fn default(width: u32, height: u32) -> Self {
+    pub fn default(width: f32, height: f32) -> Self {
 
         Self {
             pos:        (0.0, 0.0, 10.0).into(),
             target:     (0.0, 0.0, 0.0).into(),
             up:         cgmath::Vector3::unit_y(),
-            width:      width as f32,
-            height:     height as f32,
+            width:      width,
+            height:     height,
             fovy:       45.0,
             znear:      0.01,
             zfar:       100.0,
@@ -112,12 +111,38 @@ impl CameraParameters {
         }
     }
 
+    #[must_use]
+    pub fn get_left(&self) -> f32 { self.width / -2.0 }
 
+    #[must_use]
+    pub fn get_right(&self) -> f32 { self.width / 2.0 }
+
+    #[must_use]
+    pub fn get_top(&self) -> f32 { self.height / 2.0 }
+
+    #[must_use]
+    pub fn get_bottom(&self) -> f32 { self.height / -2.0 }
+
+    #[must_use]
     fn get_matrix(&self) -> cgmath::Matrix4<f32> {
 
-        let view = cgmath::Matrix4::look_at_rh(self.pos, self.target, self.up);
+        let view = self.get_view_matrix();
 
-        let proj = match self.projection {
+        let proj = self.get_projection_matrix();
+
+        OPENGL_TO_WGPU_MATRIX * proj * view
+    }
+
+    #[must_use]
+    fn get_view_matrix(&self) -> cgmath::Matrix4<f32> {
+
+        cgmath::Matrix4::look_at_rh(self.pos, self.target, self.up)
+    }
+
+    #[must_use]
+    fn get_projection_matrix(&self) -> cgmath::Matrix4<f32> {
+
+        match self.projection {
             ProjectionMode::PERSPECTIVE => {
 
                 let aspect = self.width as f32 / self.height as f32;
@@ -126,15 +151,36 @@ impl CameraParameters {
             ProjectionMode::ORTHOGRAPHIC => {
 
                 cgmath::ortho(
-                    self.width  as f32 / -2.0,
-                    self.width  as f32 / 2.0,
-                    self.height as f32 / -2.0,
-                    self.height as f32 / 2.0,
+                    self.get_left(),
+                    self.get_right(),
+                    self.get_bottom(),
+                    self.get_top(),
                     self.znear,
                     self.zfar)
             }
+        }
+    }
+
+    #[must_use]
+    pub fn ndc_to_world_coordinates(&self, x: f32, y: f32, z: f32) ->
+        cgmath::Point3<f32> {
+
+        use cgmath::SquareMatrix;
+
+        let inv = match self.get_matrix().invert() {
+            Some(inv) => { inv },
+            None => { return cgmath::Point3::<f32>{ x, y, z }; }
         };
 
-        OPENGL_TO_WGPU_MATRIX * proj * view
+        let ndc = cgmath::Vector4::<f32> { x, y, z, w: 1.0 };
+
+        let mut world_pos = inv * ndc;
+        world_pos /= world_pos.w;
+
+        cgmath::Point3::<f32>{
+            x: world_pos.x,
+            y: world_pos.y,
+            z: world_pos.z
+        }
     }
 }

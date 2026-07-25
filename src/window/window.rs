@@ -63,6 +63,15 @@ impl WindowContext<'_> {
 
     #[must_use]
     pub fn get_height(&self) -> u32 { self.surface_config.height }
+
+    #[must_use]
+    pub fn screen_pos_to_ndc(&self, x: u32, y: u32) -> (f32, f32) {
+
+        (
+            (2.0 * x as f32) / self.get_width() as f32 - 1.0,
+            1.0 - (2.0 * y as f32) / self.get_height() as f32
+        )
+    }
 }
 
 
@@ -91,8 +100,8 @@ impl WindowHandler {
         let camera = Rc::new(
             RefCell::new(
                 Camera::new(
-                    surface_config.width,
-                    surface_config.height
+                    surface_config.width as f32,
+                    surface_config.height as f32
                 )
             )
         );
