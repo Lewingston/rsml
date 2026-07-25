@@ -136,8 +136,6 @@ impl<T: App + 'static> ApplicationHandler<RsmlAppEvent> for AppHandler<T> {
             window_manager: &mut self.window_manager,
         };
 
-        event_loop.set_control_flow(winit::event_loop::ControlFlow::Poll);
-
         self.app.start(&mut context);
     }
 
