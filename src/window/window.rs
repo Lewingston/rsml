@@ -142,8 +142,8 @@ impl WindowHandler {
         let camera = Rc::new(
             RefCell::new(
                 Camera::new(
-                    surface_config.width,
-                    surface_config.height
+                    surface_config.width as f32,
+                    surface_config.height as f32
                 )
             )
         );
