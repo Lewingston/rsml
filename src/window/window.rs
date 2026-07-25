@@ -207,8 +207,8 @@ impl WindowHandler {
 
         if self.config.adjust_camera_on_resize {
             let mut cam_params = self.camera.borrow().get_parameters().clone();
-            cam_params.width  = width;
-            cam_params.height = height;
+            cam_params.width  = width as f32;
+            cam_params.height = height as f32;
             self.camera.borrow_mut().set_parameters(cam_params);
         }
     }

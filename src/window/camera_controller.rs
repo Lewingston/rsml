@@ -83,14 +83,14 @@ impl CameraController {
                     ProjectionMode::PERSPECTIVE => {
 
                         param.projection = ProjectionMode::ORTHOGRAPHIC;
-                        param.width  = (param.width  as f32 / ORTHO_PROJ_ZOOM) as u32;
-                        param.height = (param.height as f32 / ORTHO_PROJ_ZOOM) as u32;
+                        param.width  = param.width / ORTHO_PROJ_ZOOM;
+                        param.height = param.height / ORTHO_PROJ_ZOOM;
                     }
                     ProjectionMode::ORTHOGRAPHIC => {
 
                         param.projection = ProjectionMode::PERSPECTIVE;
-                        param.width  = (param.width  as f32 * ORTHO_PROJ_ZOOM) as u32;
-                        param.height = (param.height as f32 * ORTHO_PROJ_ZOOM) as u32;
+                        param.width  = param.width * ORTHO_PROJ_ZOOM;
+                        param.height = param.height * ORTHO_PROJ_ZOOM;
                     }
                 }
             }
