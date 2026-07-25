@@ -30,7 +30,7 @@ jobs:
       - name: Install target wasm32
         run: rustup target add wasm32-unknown-unknown
       - name: Install wasm-bindgen-cli
-        run: cargo install wasm-bindgen-cli
+        run: cargo install -f wasm-bindgen-cli --version 0.2.126
       - name: Build 3d scene example
         id: build_scene_3d
         run: |
@@ -54,8 +54,7 @@ jobs:
         uses: actions/upload-pages-artifact@v3
         with:
           path: pkg_deploy/
-          
-          
+
 
   # Single deploy job since we're just deploying
   deploy:
