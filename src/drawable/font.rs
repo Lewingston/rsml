@@ -12,6 +12,9 @@ pub struct Font {
 }
 
 
+/// # Panics
+///
+/// Panics if embedded font fails to load.
 #[must_use]
 pub fn get_embedded_font() -> Font {
 

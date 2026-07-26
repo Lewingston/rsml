@@ -143,7 +143,7 @@ impl CameraParameters {
         match self.projection {
             ProjectionMode::PERSPECTIVE => {
 
-                let aspect = self.width as f32 / self.height as f32;
+                let aspect = self.width / self.height;
                 cgmath::perspective(cgmath::Deg(self.fovy), aspect, self.znear, self.zfar)
             }
             ProjectionMode::ORTHOGRAPHIC => {

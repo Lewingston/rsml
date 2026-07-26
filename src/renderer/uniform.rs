@@ -196,10 +196,10 @@ impl ColorUniform {
 
     fn get_color_vector(color: Color) -> [f32; 4]
     {
-        let r = color.r as f32 / 255.0;
-        let g = color.g as f32 / 255.0;
-        let b = color.b as f32 / 255.0;
-        let a = color.a as f32 / 255.0;
+        let r = f32::from(color.r) / 255.0;
+        let g = f32::from(color.g) / 255.0;
+        let b = f32::from(color.b) / 255.0;
+        let a = f32::from(color.a) / 255.0;
 
         [r, g, b, a]
     }

@@ -54,10 +54,10 @@ impl Color {
     pub fn to_wgpu_color(&self) -> wgpu::Color {
 
         wgpu::Color {
-            r: self.r as f64 / 255.0,
-            g: self.g as f64 / 255.0,
-            b: self.b as f64 / 255.0,
-            a: self.a as f64 / 255.0
+            r: f64::from(self.r) / 255.0,
+            g: f64::from(self.g) / 255.0,
+            b: f64::from(self.b) / 255.0,
+            a: f64::from(self.a) / 255.0
         }
     }
 
@@ -66,7 +66,7 @@ impl Color {
     pub fn to_srgb(&self) -> wgpu::Color {
 
         let convert = |c: u8| -> f64 {
-            let c = c as f64 / 255.0;
+            let c = f64::from(c)  / 255.0;
             ((c + 0.055) / 1.055).powf(2.4)
         };
 
@@ -74,7 +74,7 @@ impl Color {
             r: convert(self.r),
             g: convert(self.g),
             b: convert(self.b),
-            a: self.a as f64 / 255.0
+            a: f64::from(self.a) / 255.0
         }
     }
 }
