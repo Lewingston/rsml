@@ -8,6 +8,7 @@ use crate::drawable::text::Text;
 use crate::drawable::drawable::Drawable;
 use crate::drawable::drawable::Color;
 use crate::window::frame_monitor::FrameMonitor;
+use crate::renderer::renderer::Renderer;
 
 use std::rc::Rc;
 use std::cell::RefCell;
@@ -24,6 +25,7 @@ pub struct FrameStatDisplay {
     text:        Text,
     camera:      Rc<RefCell<Camera>>,
     last_update: Option<Instant>,
+    info:        wgpu::AdapterInfo
 }
 
 
@@ -54,7 +56,8 @@ impl FrameStatDisplay {
         let mut display = Self {
             text,
             camera,
-            last_update: None
+            last_update: None,
+            info: Renderer::get().get_adapter().get_info()
         };
 
         display.set_position(-width / 2.0, height / 2.0);
@@ -143,14 +146,38 @@ impl FrameStatDisplay {
         let discard_surface = format_time(monitor.get_surface_discard_time());
         let render_time     = format_time(monitor.get_render_time());
         let submit_time     = format_time(monitor.get_submit_time());
+        let adapter_info    = self.adapter_info_to_string();
 
         let text = format!(r"FPS: {fps}
 Acquire surface: {acquire_surface}
 Discard surface: {discard_surface}
 Render time: {render_time}
 Submit frame time: {submit_time}
-");
+
+{adapter_info}");
 
         self.text.set_text(&text);
+    }
+
+
+    fn adapter_info_to_string(&self) -> String {
+
+        let info = &self.info;
+
+        let name        = &info.name;
+        let vendor      = info.vendor;
+        let device      = info.device;
+        let device_type = info.device_type;
+        let driver      = &info.driver;
+        let driver_info = &info.driver_info;
+        let backend     = info.backend;
+
+        format!(r"Name: {name}
+Vendor: {vendor}
+Device: {device}
+Device type: {:?}
+Driver: {driver}
+Driver info: {driver_info}
+Backend: {backend}", device_type)
     }
 }
