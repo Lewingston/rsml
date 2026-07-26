@@ -13,17 +13,17 @@ use std::rc::Rc;
 use std::cell::RefCell;
 
 #[cfg(target_arch = "wasm32")]
-use web_time::Duration;
+use web_time::{Instant, Duration};
 
 #[cfg(not(target_arch = "wasm32"))]
-use std::time::Duration;
+use std::time::{Instant, Duration};
 
 
 pub struct FrameStatDisplay {
 
-    text:      Text,
-    camera:    Rc<RefCell<Camera>>,
-    frame_idx: usize
+    text:        Text,
+    camera:      Rc<RefCell<Camera>>,
+    last_update: Option<Instant>,
 }
 
 
@@ -51,7 +51,11 @@ impl FrameStatDisplay {
 
         let camera = Rc::new(RefCell::new(camera));
 
-        let mut display = Self { text, camera, frame_idx: 0 };
+        let mut display = Self {
+            text,
+            camera,
+            last_update: None
+        };
 
         display.set_position(-width / 2.0, height / 2.0);
 
@@ -65,9 +69,15 @@ impl FrameStatDisplay {
         frame_monitor: &FrameMonitor
     ) {
 
-        if self.frame_idx % 20 == 1 {
-            self.set_text(frame_monitor);
-        }
+        match self.last_update {
+            Some(time) => {
+                if time.elapsed() >= Duration::from_millis(500) {
+                    self.set_text(frame_monitor);
+                }
+            }
+            None => self.set_text(frame_monitor)
+        };
+
 
         let old_cam = render_target.get_camera().clone();
 
@@ -76,8 +86,6 @@ impl FrameStatDisplay {
         self.text.draw(render_target);
 
         render_target.set_camera(old_cam);
-
-        self.frame_idx += 1;
     }
 
 
@@ -117,6 +125,8 @@ impl FrameStatDisplay {
 
 
     fn set_text(&mut self, monitor: &FrameMonitor) {
+
+        self.last_update = Some(Instant::now());
 
         let fps = match monitor.get_fps() {
             Some(fps) => format!("{fps:.2}"),
