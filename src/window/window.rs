@@ -225,66 +225,21 @@ impl WindowHandler {
 
     pub fn draw(&mut self) {
 
-        self.frame_monitor.end_frame();
         self.frame_monitor.start_frame();
 
         self.winit_window.request_redraw();
 
-        let output = match self.surface.get_current_texture() {
-
-            wgpu::CurrentSurfaceTexture::Success(surface_texture) => surface_texture,
-            wgpu::CurrentSurfaceTexture::Suboptimal(surface_texture) => {
-                self.surface.configure(Renderer::get().get_device(), &self.surface_config);
-                surface_texture
-            }
-            wgpu::CurrentSurfaceTexture::Timeout |
-            wgpu::CurrentSurfaceTexture::Occluded |
-            wgpu::CurrentSurfaceTexture::Validation => {
-
-                return;
-            }
-            wgpu::CurrentSurfaceTexture::Outdated => {
-                self.surface.configure(Renderer::get().get_device(), &self.surface_config);
-                return;
-            }
-            wgpu::CurrentSurfaceTexture::Lost => {
-                // TODO: Recreate all resources or exit application
-                return;
-            }
-        };
+        let Some(output) = self.aquire_render_surface() else { return; };
 
         let view = output.texture.create_view(&wgpu::TextureViewDescriptor::default());
 
-        let mut encoder = Renderer::get().get_device().create_command_encoder(&wgpu::CommandEncoderDescriptor {
-            label: Some("Render Encoder")
-        });
+        let mut encoder = Renderer::get().get_device().
+            create_command_encoder(&wgpu::CommandEncoderDescriptor {
+                label: Some("Render Encoder")
+            });
 
         {
-            let color = self.config.background_color;
-
-            let render_pass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
-                label: Some("Render Pass"),
-                color_attachments: &[Some(wgpu::RenderPassColorAttachment {
-                    view:           &view,
-                    resolve_target: None,
-                    depth_slice:    None,
-                    ops: wgpu::Operations {
-                        load: wgpu::LoadOp::Clear(color.to_srgb()),
-                        store: wgpu::StoreOp::Store
-                    }
-                })],
-                depth_stencil_attachment: Some(wgpu::RenderPassDepthStencilAttachment {
-                    view:      self.depth_texture.get_view(),
-                    depth_ops: Some(wgpu::Operations {
-                        load:  wgpu::LoadOp::Clear(1.0),
-                        store: wgpu::StoreOp::Store
-                    }),
-                    stencil_ops: None
-                }),
-                occlusion_query_set:      None,
-                timestamp_writes:         None,
-                multiview_mask:           None
-            });
+            let render_pass = self.create_render_pass(&mut encoder, &view);
 
             let mut render_target = RenderTarget::new(render_pass, self.camera.clone());
 
@@ -295,6 +250,8 @@ impl WindowHandler {
         let queue = renderer.get_queue();
         queue.submit(std::iter::once(encoder.finish()));
         queue.present(output);
+
+        self.frame_monitor.end_frame();
     }
 
 
@@ -329,6 +286,68 @@ impl WindowHandler {
             Ok(window) => Ok(Arc::new(window)),
             Err(err)   => Err(Error::FailedToCreateWindow(err.to_string()))
         }
+    }
+
+
+    #[must_use]
+    fn aquire_render_surface(&self) -> Option<wgpu::SurfaceTexture> {
+
+        match self.surface.get_current_texture() {
+
+            wgpu::CurrentSurfaceTexture::Success(texture) => Some(texture),
+
+            wgpu::CurrentSurfaceTexture::Suboptimal(texture) => {
+                self.surface.configure(Renderer::get().get_device(), &self.surface_config);
+                Some(texture)
+            }
+
+            wgpu::CurrentSurfaceTexture::Timeout |
+            wgpu::CurrentSurfaceTexture::Occluded |
+            wgpu::CurrentSurfaceTexture::Validation => None,
+
+            wgpu::CurrentSurfaceTexture::Outdated => {
+                self.surface.configure(Renderer::get().get_device(), &self.surface_config);
+                None
+            }
+
+            wgpu::CurrentSurfaceTexture::Lost => None // TODO: Recreate all resources or exit
+                                                      // application
+        }
+    }
+
+
+    #[must_use]
+    fn create_render_pass<'encoder>(
+        &self,
+        encoder: &'encoder mut wgpu::CommandEncoder,
+        view:    &wgpu::TextureView
+    ) -> wgpu::RenderPass<'encoder> {
+
+        let color  = self.config.background_color;
+
+        encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
+            label:             Some("Render pass"),
+            color_attachments: &[Some(wgpu::RenderPassColorAttachment{
+                view,
+                resolve_target: None,
+                depth_slice:    None,
+                ops: wgpu::Operations {
+                    load:  wgpu::LoadOp::Clear(color.to_srgb()),
+                    store: wgpu::StoreOp::Store
+                }
+            })],
+            depth_stencil_attachment: Some(wgpu::RenderPassDepthStencilAttachment {
+                view: self.depth_texture.get_view(),
+                depth_ops: Some(wgpu::Operations {
+                    load:  wgpu::LoadOp::Clear(1.0),
+                    store: wgpu::StoreOp::Store
+                }),
+                stencil_ops: None
+            }),
+            occlusion_query_set: None,
+            timestamp_writes:    None,
+            multiview_mask:      None
+        })
     }
 }
 
