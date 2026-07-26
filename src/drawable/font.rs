@@ -12,6 +12,14 @@ pub struct Font {
 }
 
 
+#[must_use]
+pub fn get_embedded_font() -> Font {
+
+    Font::from_bytes(include_bytes!("../../resources/embedded_font.ttf"))
+        .expect("Failed to load embedded font")
+}
+
+
 impl Font {
 
     /// # Errors
