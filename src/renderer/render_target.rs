@@ -37,4 +37,10 @@ impl<'a> RenderTarget<'a> {
 
         self.camera.clone()
     }
+
+
+    pub fn set_camera(&mut self, camera: Rc<RefCell<Camera>>) {
+
+        self.camera = camera;
+    }
 }

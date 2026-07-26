@@ -59,9 +59,7 @@ impl Camera {
 
 
     #[must_use]
-    pub fn new(width: f32, height: f32) -> Self {
-
-        let parameters = CameraParameters::default(width, height);
+    pub fn new(parameters: CameraParameters) -> Self {
 
         let uniform = MatrixUniform::new(Renderer::get().get_device(), parameters.get_matrix());
 

@@ -8,6 +8,7 @@ use crate::error::Error;
 use crate::renderer::Renderer;
 use crate::renderer::render_target::RenderTarget;
 use crate::renderer::camera::Camera;
+use crate::renderer::camera::CameraParameters;
 
 use crate::drawable::texture::Texture;
 use crate::drawable::drawable::Color;
@@ -99,10 +100,10 @@ impl WindowHandler {
 
         let camera = Rc::new(
             RefCell::new(
-                Camera::new(
+                Camera::new(CameraParameters::default(
                     surface_config.width as f32,
                     surface_config.height as f32
-                )
+                ))
             )
         );
 

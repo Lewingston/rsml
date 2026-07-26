@@ -25,6 +25,7 @@ pub use drawable::drawable::Transform;
 pub use drawable::texture::Texture;
 pub use drawable::font::Font;
 pub use drawable::text::Text;
+pub use drawable::frame_stat_display::FrameStatDisplay;
 
 pub mod renderer;
 
