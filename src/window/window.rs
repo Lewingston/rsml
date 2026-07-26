@@ -291,8 +291,10 @@ impl WindowHandler {
             self.window.draw(&mut render_target, &self.frame_monitor);
         }
 
-        Renderer::get().get_queue().submit(std::iter::once(encoder.finish()));
-        output.present();
+        let renderer = Renderer::get();
+        let queue = renderer.get_queue();
+        queue.submit(std::iter::once(encoder.finish()));
+        queue.present(output);
     }
 
 

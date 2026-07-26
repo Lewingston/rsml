@@ -30,7 +30,7 @@ jobs:
       - name: Install target wasm32
         run: rustup target add wasm32-unknown-unknown
       - name: Install wasm-bindgen-cli
-        run: cargo install -f wasm-bindgen-cli --version 0.2.121
+        run: cargo install wasm-bindgen-cli
       - name: Build 3d scene example
         id: build_scene_3d
         run: |

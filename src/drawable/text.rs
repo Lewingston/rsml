@@ -270,7 +270,7 @@ fn create_default_text_render_pipeline() -> wgpu::RenderPipeline {
         vertex: wgpu::VertexState {
             module:              &shader,
             entry_point:         Some("vs_main"),
-            buffers:             &[index_buffer_layout],
+            buffers:             &[Some(index_buffer_layout)],
             compilation_options: wgpu::PipelineCompilationOptions::default()
         },
         fragment: Some(wgpu::FragmentState {

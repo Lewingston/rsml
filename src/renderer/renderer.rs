@@ -176,7 +176,6 @@ impl Renderer {
     async fn init_and_create_window_surface(window: Arc<WinitWindow>)
         -> Result<wgpu::Surface<'static>, Error>
     {
-
         let wgpu_instance = Renderer::create_instance();
 
         let (wgpu_adapter, surface) = Renderer::create_adapter_and_surface(&wgpu_instance, window).await?;
@@ -279,7 +278,8 @@ impl Renderer {
             &wgpu::RequestAdapterOptions {
                 power_preference:       wgpu::PowerPreference::default(),
                 compatible_surface:     Some(&surface),
-                force_fallback_adapter: false
+                force_fallback_adapter: false,
+                apply_limit_buckets:    true
             }
         ).await {
             Ok(adapter) => Ok((adapter, surface)),
@@ -323,6 +323,7 @@ fn get_surface_config(surface: &wgpu::Surface, adapter: &wgpu::Adapter) -> wgpu:
     wgpu::SurfaceConfiguration {
         usage:                         wgpu::TextureUsages::RENDER_ATTACHMENT,
         format:                        surface_format,
+        color_space:                   wgpu::SurfaceColorSpace::Auto,
         width:                         0,
         height:                        0,
         present_mode:                  wgpu::PresentMode::AutoVsync,
@@ -347,7 +348,7 @@ fn create_pipeline(
         vertex: wgpu::VertexState {
             module:              shader,
             entry_point:         Some("vs_main"),
-            buffers:             &[vertex_buffer_layout],
+            buffers:             &[Some(vertex_buffer_layout)],
             compilation_options: wgpu::PipelineCompilationOptions::default()
         },
         fragment: Some(wgpu::FragmentState {
