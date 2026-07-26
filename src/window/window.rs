@@ -226,8 +226,6 @@ impl WindowHandler {
 
     pub fn draw(&mut self) {
 
-        self.frame_monitor.start_draw_call();
-
         self.winit_window.request_redraw();
 
         self.frame_monitor.start_surface_acquisition();
@@ -265,6 +263,8 @@ impl WindowHandler {
         queue.present(output);
 
         self.frame_monitor.end_submitting();
+
+        self.frame_monitor.draw_completed();
     }
 
 

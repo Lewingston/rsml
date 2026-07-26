@@ -41,7 +41,7 @@ impl FrameMonitor {
     }
 
 
-    pub fn start_draw_call(&mut self) {
+    pub fn draw_completed(&mut self) {
 
         if let Some(time) = self.draw_call_start_time {
 

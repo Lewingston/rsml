@@ -164,7 +164,9 @@ impl FrameStatDisplay {
 
     fn set_text(&mut self, monitor: &FrameMonitor) {
 
-        self.last_update = Some(Instant::now());
+        if monitor.get_fps().is_some() {
+            self.last_update = Some(Instant::now());
+        }
 
         let text = match self.display_mode {
             DisplayMode::None => "".to_string(),
