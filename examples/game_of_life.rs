@@ -88,19 +88,12 @@ impl Scene {
     }
 
 
-    fn set_frame_rate(&mut self, frame_time: &std::time::Duration) {
+    fn set_frame_rate(&mut self, fps: Option<f32>) {
 
-        let frame_time: f32 = frame_time.as_micros() as f32;
-
-        if frame_time > 0.0 {
-
-            let frame_rate = 1_000_000.0 / frame_time;
-            self.frame_count.set_text(&format!("FPS: {:.2}", frame_rate));
-
-        } else {
-
-            self.frame_count.set_text(&"0.0");
-        }
+        match fps {
+            Some(fps) => self.frame_count.set_text(&format!("FPS: {fps:.2}")),
+            None => self.frame_count.set_text("-")
+        };
     }
 
 
@@ -558,7 +551,7 @@ impl rsml::Window for MainWindow {
 
         let Some(scene) = &mut self.scene else { return; };
 
-        scene.set_frame_rate(&frame_monitor.get_frame_time());
+        scene.set_frame_rate(frame_monitor.get_fps());
 
         scene.draw(render_target);
     }
