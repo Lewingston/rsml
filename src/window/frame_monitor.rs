@@ -10,9 +10,15 @@ use std::time::{Instant, Duration};
 
 pub struct FrameMonitor {
 
-    start_time:          Instant,
-    timing_queue:        VecDeque<std::time::Duration>,
-    frame_average_count: usize
+    draw_call_start_time:           Option<Instant>,
+    surface_acquisition_start_time: Option<Instant>,
+    render_start_time:              Option<Instant>,
+    submit_start_time:              Option<Instant>,
+    time_between_draws:             TimingQueue,
+    surface_acquisition_time:       TimingQueue,
+    surface_discard_time:           TimingQueue,
+    render_time:                    TimingQueue,
+    submit_time:                    TimingQueue
 }
 
 
@@ -22,53 +28,162 @@ impl FrameMonitor {
     pub fn new(av_count: usize) -> Self {
 
         Self {
-            start_time:          Instant::now(),
-            timing_queue:        VecDeque::<std::time::Duration>::new(),
-            frame_average_count: av_count
+            draw_call_start_time:           None,
+            surface_acquisition_start_time: None,
+            render_start_time:              None,
+            submit_start_time:              None,
+            time_between_draws:             TimingQueue::new(av_count),
+            surface_acquisition_time:       TimingQueue::new(av_count),
+            surface_discard_time:           TimingQueue::new(av_count),
+            render_time:                    TimingQueue::new(av_count),
+            submit_time:                    TimingQueue::new(av_count)
         }
     }
 
 
-    pub fn start_frame(&mut self) {
+    pub fn start_draw_call(&mut self) {
 
-        self.start_time = Instant::now();
+        if let Some(time) = self.draw_call_start_time {
+
+            self.time_between_draws.add_time(time.elapsed());
+        }
+
+        self.draw_call_start_time = Some(Instant::now());
     }
 
 
-    pub fn end_frame(&mut self) {
+    pub fn start_surface_acquisition(&mut self) {
 
-        let duration = self.start_time.elapsed();
+        self.surface_acquisition_start_time = Some(Instant::now());
+    }
 
-        self.timing_queue.push_back(duration);
 
-        if self.timing_queue.len() > self.frame_average_count {
+    pub fn surface_acquired(&mut self) {
 
-            self.timing_queue.pop_front();
-        }
+        let Some(time) = self.surface_acquisition_start_time else { return; };
+        self.surface_acquisition_time.add_time(time.elapsed());
+        self.surface_acquisition_start_time = None;
+    }
+
+
+    pub fn surface_discarded(&mut self) {
+
+        let Some(time) = self.surface_acquisition_start_time else { return; };
+        self.surface_discard_time.add_time(time.elapsed());
+        self.surface_acquisition_start_time = None;
+    }
+
+
+    pub fn start_rendering(&mut self) {
+
+        self.render_start_time = Some(Instant::now());
+    }
+
+
+    pub fn end_rendering(&mut self) {
+
+        let Some(time) = self.render_start_time else { return; };
+        self.render_time.add_time(time.elapsed());
+        self.render_start_time = None;
+    }
+
+
+    pub fn start_submitting(&mut self) {
+
+        self.submit_start_time = Some(Instant::now());
+    }
+
+
+    pub fn end_submitting(&mut self) {
+
+        let Some(time) = self.submit_start_time else { return ;};
+        self.submit_time.add_time(time.elapsed());
+        self.submit_start_time = None;
     }
 
 
     #[must_use]
-    pub fn get_frame_time(&self) -> Duration {
+    pub fn get_time_between_draws(&self) -> Option<Duration> {
 
-        let mut total_duration = Duration::new(0, 0);
+        self.time_between_draws.get_average()
+    }
 
-        for duration in &self.timing_queue {
 
-            total_duration += *duration;
+    #[must_use]
+    pub fn get_surface_acquisition_time(&self) -> Option<Duration> {
+
+        self.surface_acquisition_time.get_average()
+    }
+
+
+    #[must_use]
+    pub fn get_surface_discard_time(&self) -> Option<Duration> {
+
+        self.surface_discard_time.get_average()
+    }
+
+
+    #[must_use]
+    pub fn get_render_time(&self) -> Option<Duration> {
+
+        self.render_time.get_average()
+    }
+
+
+    #[must_use]
+    pub fn get_submit_time(&self) -> Option<Duration> {
+
+        self.submit_time.get_average()
+    }
+
+
+    #[must_use]
+    pub fn get_fps(&self) -> Option<f32> {
+
+        let time = self.get_time_between_draws()?;
+        Some(1.0 / time.as_secs_f32())
+    }
+}
+
+
+struct TimingQueue {
+
+    queue: VecDeque<std::time::Duration>,
+    size:  usize
+}
+
+
+impl TimingQueue {
+
+
+    #[must_use]
+    pub fn new(size: usize) -> Self {
+
+        Self {
+            queue: VecDeque::<std::time::Duration>::with_capacity(size),
+            size
+        }
+    }
+
+
+    pub fn add_time(&mut self, time: std::time::Duration) {
+
+        if self.queue.len() == self.size {
+            self.queue.pop_front();
         }
 
-        if self.timing_queue.is_empty() {
-            Duration::new(0, 0)
+        self.queue.push_back(time);
+    }
+
+
+    #[must_use]
+    pub fn get_average(&self) -> Option<Duration> {
+
+        if self.queue.is_empty() {
+            None
         } else {
-            total_duration / self.timing_queue.len() as u32
+            let total_time: Duration = self.queue.iter().sum();
+            Some(total_time / self.queue.len() as u32)
         }
-    }
-
-
-    #[must_use]
-    pub fn get_fps(&self) -> f32 {
-
-        1.0 / self.get_frame_time().as_secs_f32()
     }
 }

@@ -12,11 +12,18 @@ use crate::window::frame_monitor::FrameMonitor;
 use std::rc::Rc;
 use std::cell::RefCell;
 
+#[cfg(target_arch = "wasm32")]
+use web_time::Duration;
+
+#[cfg(not(target_arch = "wasm32"))]
+use std::time::Duration;
+
 
 pub struct FrameStatDisplay {
 
-    text:   Text,
-    camera: Rc<RefCell<Camera>>
+    text:      Text,
+    camera:    Rc<RefCell<Camera>>,
+    frame_idx: usize
 }
 
 
@@ -29,7 +36,7 @@ impl FrameStatDisplay {
         let height = screen_height as f32;
 
         let text = Text::new(
-            "-",
+            "",
             Rc::new(RefCell::new(font::get_embedded_font())),
             14.0,
             None);
@@ -44,7 +51,7 @@ impl FrameStatDisplay {
 
         let camera = Rc::new(RefCell::new(camera));
 
-        let mut display = Self { text, camera };
+        let mut display = Self { text, camera, frame_idx: 0 };
 
         display.set_position(-width / 2.0, height / 2.0);
 
@@ -58,7 +65,9 @@ impl FrameStatDisplay {
         frame_monitor: &FrameMonitor
     ) {
 
-        self.set_text(frame_monitor);
+        if self.frame_idx % 20 == 1 {
+            self.set_text(frame_monitor);
+        }
 
         let old_cam = render_target.get_camera().clone();
 
@@ -67,6 +76,8 @@ impl FrameStatDisplay {
         self.text.draw(render_target);
 
         render_target.set_camera(old_cam);
+
+        self.frame_idx += 1;
     }
 
 
@@ -107,9 +118,28 @@ impl FrameStatDisplay {
 
     fn set_text(&mut self, monitor: &FrameMonitor) {
 
-        let fps = monitor.get_fps();
+        let fps = match monitor.get_fps() {
+            Some(fps) => format!("{fps:.2}"),
+            None => "-".to_string()
+        };
 
-        let text = format!("FPS: {:.2}", fps);
+        let format_time = |time: Option<Duration>|
+            match time {
+                Some(time) => format!("{:.1}ms", time.as_millis()),
+                None => "-".to_string()
+            };
+
+        let acquire_surface = format_time(monitor.get_surface_acquisition_time());
+        let discard_surface = format_time(monitor.get_surface_discard_time());
+        let render_time     = format_time(monitor.get_render_time());
+        let submit_time     = format_time(monitor.get_submit_time());
+
+        let text = format!(r"FPS: {fps}
+Acquire surface: {acquire_surface}
+Discard surface: {discard_surface}
+Render time: {render_time}
+Submit frame time: {submit_time}
+");
 
         self.text.set_text(&text);
     }

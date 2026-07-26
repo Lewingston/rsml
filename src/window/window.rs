@@ -142,10 +142,10 @@ impl WindowHandler {
 
         let camera = Rc::new(
             RefCell::new(
-                Camera::new(
+                Camera::new(CameraParameters::default(
                     surface_config.width as f32,
                     surface_config.height as f32
-                )
+                ))
             )
         );
 
@@ -164,7 +164,7 @@ impl WindowHandler {
             camera,
             depth_texture,
             config,
-            frame_monitor: FrameMonitor::new()
+            frame_monitor: FrameMonitor::new(20)
         };
 
         window_handler.start();
@@ -226,13 +226,22 @@ impl WindowHandler {
 
     pub fn draw(&mut self) {
 
-        self.frame_monitor.start_frame();
+        self.frame_monitor.start_draw_call();
 
         self.winit_window.request_redraw();
 
-        let Some(output) = self.aquire_render_surface() else { return; };
+        self.frame_monitor.start_surface_acquisition();
+
+        let Some(output) = self.acquire_render_surface() else {
+            self.frame_monitor.surface_discarded();
+            return;
+        };
+
+        self.frame_monitor.surface_acquired();
 
         let view = output.texture.create_view(&wgpu::TextureViewDescriptor::default());
+
+        self.frame_monitor.start_rendering();
 
         let mut encoder = Renderer::get().get_device().
             create_command_encoder(&wgpu::CommandEncoderDescriptor {
@@ -247,12 +256,15 @@ impl WindowHandler {
             self.window.draw(&mut render_target, &self.frame_monitor);
         }
 
+        self.frame_monitor.end_rendering();
+        self.frame_monitor.start_submitting();
+
         let renderer = Renderer::get();
         let queue = renderer.get_queue();
         queue.submit(std::iter::once(encoder.finish()));
         queue.present(output);
 
-        self.frame_monitor.end_frame();
+        self.frame_monitor.end_submitting();
     }
 
 
@@ -293,7 +305,7 @@ impl WindowHandler {
 
 
     #[must_use]
-    fn aquire_render_surface(&self) -> Option<wgpu::SurfaceTexture> {
+    fn acquire_render_surface(&self) -> Option<wgpu::SurfaceTexture> {
 
         match self.surface.get_current_texture() {
 
