@@ -121,7 +121,7 @@ impl WindowHandler {
             camera,
             depth_texture,
             config,
-            frame_monitor: FrameMonitor::new()
+            frame_monitor: FrameMonitor::new(20)
         };
 
         window_handler.start();
@@ -255,7 +255,9 @@ impl WindowHandler {
     }
 
 
+    #[must_use]
     pub fn get_window_id(&self) -> winit::window::WindowId {
+
         self.winit_window.id()
     }
 

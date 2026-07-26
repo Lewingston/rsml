@@ -18,12 +18,13 @@ pub struct FrameMonitor {
 
 impl FrameMonitor {
 
-    pub fn new() -> Self {
+    #[must_use]
+    pub fn new(av_count: usize) -> Self {
 
         Self {
             start_time:          Instant::now(),
             timing_queue:        VecDeque::<std::time::Duration>::new(),
-            frame_average_count: 30
+            frame_average_count: av_count
         }
     }
 
@@ -57,7 +58,7 @@ impl FrameMonitor {
             total_duration += *duration;
         }
 
-        if self.timing_queue.len() == 0 {
+        if self.timing_queue.is_empty() {
             Duration::new(0, 0)
         } else {
             total_duration / self.timing_queue.len() as u32

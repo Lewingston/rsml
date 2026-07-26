@@ -102,8 +102,8 @@ impl CameraParameters {
             pos:        (0.0, 0.0, 10.0).into(),
             target:     (0.0, 0.0, 0.0).into(),
             up:         cgmath::Vector3::unit_y(),
-            width:      width,
-            height:     height,
+            width,
+            height,
             fovy:       45.0,
             znear:      0.01,
             zfar:       100.0,
@@ -167,9 +167,8 @@ impl CameraParameters {
 
         use cgmath::SquareMatrix;
 
-        let inv = match self.get_matrix().invert() {
-            Some(inv) => { inv },
-            None => { return cgmath::Point3::<f32>{ x, y, z }; }
+        let Some(inv) = self.get_matrix().invert() else {
+            return cgmath::Point3::<f32>{ x, y, z };
         };
 
         let ndc = cgmath::Vector4::<f32> { x, y, z, w: 1.0 };

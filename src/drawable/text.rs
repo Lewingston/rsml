@@ -19,10 +19,8 @@ use std::collections::HashSet;
 
 use once_cell::unsync::OnceCell;
 
-//static TEXT_RENDER_PIPELINE: std::sync::OnceLock<Arc<wgpu::RenderPipeline>> = std::sync::OnceLock::new();
-
 thread_local! {
-    static TEXT_RENDER_PIPELINE: OnceCell<Arc<wgpu::RenderPipeline>> = OnceCell::new();
+    static TEXT_RENDER_PIPELINE: OnceCell<Arc<wgpu::RenderPipeline>> = const { OnceCell::new() };
 }
 
 
@@ -76,9 +74,9 @@ impl Text {
         layout:    Option<fontdue::layout::LayoutSettings>
     ) -> Self {
 
-        let layout = layout.unwrap_or(fontdue::layout::LayoutSettings::default());
+        let layout = layout.unwrap_or_default();
 
-        let characters = Self::calculate_layout(text, &mut *font.borrow_mut(), font_size, &layout);
+        let characters = Self::calculate_layout(text, &mut font.borrow_mut(), font_size, &layout);
 
         let instance_buffer = Self::create_instance_buffer(&characters);
 
@@ -90,7 +88,7 @@ impl Text {
             font_size,
             render_pipeline:   get_default_text_render_pipeline(),
             character_sprites: characters,
-            instance_buffer:   instance_buffer,
+            instance_buffer,
             color_uniform,
             layout_settings:   layout
         }
@@ -107,7 +105,7 @@ impl Text {
 
         self.character_sprites = Self::calculate_layout(
             text,
-            &mut *self.font.borrow_mut(),
+            &mut self.font.borrow_mut(),
             self.font_size,
             &self.layout_settings);
 
@@ -164,7 +162,7 @@ impl Text {
     }
 
 
-    fn create_instance_buffer(char_sprites: &Vec<CharSpriteInstance>) -> wgpu::Buffer {
+    fn create_instance_buffer(char_sprites: &[CharSpriteInstance]) -> wgpu::Buffer {
 
         Renderer::get().get_device().create_buffer_init(
             &wgpu::util::BufferInitDescriptor {
@@ -189,10 +187,7 @@ impl Drawable for Text {
 
         let pass : &mut wgpu::RenderPass = render_target.get_render_pass();
 
-        let texture = match self.font.borrow_mut().get_texture(self.font_size) {
-            Ok(texture) => texture,
-            Err(_) => { return; }
-        };
+        let Ok(texture) = self.font.borrow_mut().get_texture(self.font_size) else { return; };
 
         pass.set_pipeline(self.render_pipeline.as_ref());
 
@@ -211,9 +206,8 @@ impl Drawable for Text {
 }
 
 
+#[must_use]
 pub fn get_default_text_render_pipeline() -> Arc<wgpu::RenderPipeline> {
-
-    //TEXT_RENDER_PIPELINE.get_or_init(|| Arc::new(create_default_text_render_pipeline())).clone()
 
     TEXT_RENDER_PIPELINE.with(|p| {
         p.get_or_init(|| Arc::new(create_default_text_render_pipeline())).clone()
@@ -221,6 +215,7 @@ pub fn get_default_text_render_pipeline() -> Arc<wgpu::RenderPipeline> {
 }
 
 
+#[must_use]
 fn create_default_text_render_pipeline() -> wgpu::RenderPipeline {
 
     let renderer = Renderer::get();

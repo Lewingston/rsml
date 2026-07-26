@@ -65,6 +65,10 @@ impl Renderer {
         })
     }
 
+    /// # Panics
+    ///
+    /// Will panic if application tries to access renderer before renderer is initialized.
+    /// Creating the first window will initialize the renderer.
     #[cfg(not(target_arch = "wasm32"))]
     pub fn get() -> &'static Renderer {
 
@@ -118,6 +122,9 @@ impl Renderer {
     }
 
 
+    /// # Errors
+    ///
+    /// Returns an error if renderer is not initialized
     #[cfg(not(target_arch = "wasm32"))]
     pub fn create_window_surface(
         window: Arc<WinitWindow>

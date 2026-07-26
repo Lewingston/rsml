@@ -495,12 +495,9 @@ impl Drawable for Shape {
 
         pass.set_bind_group(1, camera.borrow().get_bind_group(), &[]);
 
-        match &self.texture {
-            Some(texture) => {
-                pass.set_bind_group(2, texture.get_bind_group(), &[]);
-            }
-            None => {}
-        };
+        if let Some(texture) = &self.texture {
+            pass.set_bind_group(2, texture.get_bind_group(), &[]);
+        }
 
         pass.set_vertex_buffer(0, self.vertex_buffer.slice(..));
 
