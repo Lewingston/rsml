@@ -54,6 +54,7 @@ pub struct WindowContext<'window_handler> {
     pub surface_config: &'window_handler wgpu::SurfaceConfiguration,
     pub camera:         &'window_handler Rc<RefCell<Camera>>,
     pub window_config:  &'window_handler mut WindowConfig,
+    pub winit_window:   Arc<WinitWindow>
 }
 
 
@@ -179,7 +180,8 @@ impl WindowHandler {
             surface:        &self.surface,
             surface_config: &self.surface_config,
             camera:         &self.camera,
-            window_config:  &mut self.config
+            window_config:  &mut self.config,
+            winit_window:   self.winit_window.clone()
         };
 
         self.window.start(context);
@@ -194,7 +196,8 @@ impl WindowHandler {
             surface:        &self.surface,
             surface_config: &self.surface_config,
             camera:         &self.camera,
-            window_config:  &mut self.config
+            window_config:  &mut self.config,
+            winit_window:   self.winit_window.clone()
         };
 
         self.window.event(event, context);
