@@ -99,6 +99,7 @@ impl rsml::Window for MainWindow {
     fn event(&mut self, event: winit::event::WindowEvent, _context: rsml::WindowContext) {
 
         use rsml::winit::event::WindowEvent;
+        use rsml::winit::keyboard::KeyCode;
 
         let Some(scene) = &mut self.scene else { return; };
 
@@ -113,6 +114,10 @@ impl rsml::Window for MainWindow {
                 let winit::keyboard::PhysicalKey::Code(code) = event.physical_key else { return; };
 
                 scene.camera_control.keyboard_input(code, event.state.is_pressed());
+
+                if code == KeyCode::Tab && event.state.is_pressed() {
+                    scene.frame_stats.toggle_display_mode();
+                }
             }
             _ => {}
         }
