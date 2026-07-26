@@ -20,12 +20,22 @@ use web_time::{Instant, Duration};
 use std::time::{Instant, Duration};
 
 
+#[derive(PartialEq)]
+pub enum DisplayMode {
+    None,
+    Fps,
+    FrameStatistics,
+    HardwareInfo
+}
+
+
 pub struct FrameStatDisplay {
 
-    text:        Text,
-    camera:      Rc<RefCell<Camera>>,
-    last_update: Option<Instant>,
-    info:        wgpu::AdapterInfo
+    text:         Text,
+    camera:       Rc<RefCell<Camera>>,
+    last_update:  Option<Instant>,
+    info:         wgpu::AdapterInfo,
+    display_mode: DisplayMode
 }
 
 
@@ -56,8 +66,9 @@ impl FrameStatDisplay {
         let mut display = Self {
             text,
             camera,
-            last_update: None,
-            info: Renderer::get().get_adapter().get_info()
+            last_update:  None,
+            info:         Renderer::get().get_adapter().get_info(),
+            display_mode: DisplayMode::Fps
         };
 
         display.set_position(-width / 2.0, height / 2.0);
@@ -66,11 +77,35 @@ impl FrameStatDisplay {
     }
 
 
+    pub fn set_display_mode(&mut self, mode: DisplayMode) {
+
+        self.display_mode = mode;
+        self.last_update = None;
+    }
+
+
+    pub fn toggle_display_mode(&mut self) {
+
+        match self.display_mode {
+            DisplayMode::None => self.display_mode = DisplayMode::Fps,
+            DisplayMode::Fps => self.display_mode = DisplayMode::FrameStatistics,
+            DisplayMode::FrameStatistics => self.display_mode = DisplayMode::HardwareInfo,
+            DisplayMode::HardwareInfo => self.display_mode = DisplayMode::None
+        }
+
+        self.last_update = None;
+    }
+
+
     pub fn draw(
         &mut self,
         render_target: &mut RenderTarget,
         frame_monitor: &FrameMonitor
     ) {
+
+        if self.display_mode == DisplayMode::None {
+            return;
+        }
 
         match self.last_update {
             Some(time) => {
@@ -131,10 +166,38 @@ impl FrameStatDisplay {
 
         self.last_update = Some(Instant::now());
 
-        let fps = match monitor.get_fps() {
-            Some(fps) => format!("{fps:.2}"),
-            None => "-".to_string()
+        let text = match self.display_mode {
+            DisplayMode::None => "".to_string(),
+            DisplayMode::Fps => Self::get_fps_string(monitor),
+            DisplayMode::FrameStatistics => {
+                let fps   = Self::get_fps_string(monitor);
+                let frame = Self::get_frame_info_string(monitor);
+                format!("{fps}\n{frame}")
+            }
+            DisplayMode::HardwareInfo => {
+                let fps   = Self::get_fps_string(monitor);
+                let frame = Self::get_frame_info_string(monitor);
+                let info  = self.adapter_info_to_string();
+                format!("{fps}\n{frame}\n\n{info}")
+            }
         };
+
+        self.text.set_text(&text);
+    }
+
+
+    #[must_use]
+    fn get_fps_string(monitor: &FrameMonitor) -> String {
+
+        match monitor.get_fps() {
+            Some(fps) => format!("FPS: {fps:.2}"),
+            None => "FPS: -".to_string()
+        }
+    }
+
+
+    #[must_use]
+    fn get_frame_info_string(monitor: &FrameMonitor) -> String {
 
         let format_time = |time: Option<Duration>|
             match time {
@@ -146,20 +209,15 @@ impl FrameStatDisplay {
         let discard_surface = format_time(monitor.get_surface_discard_time());
         let render_time     = format_time(monitor.get_render_time());
         let submit_time     = format_time(monitor.get_submit_time());
-        let adapter_info    = self.adapter_info_to_string();
 
-        let text = format!(r"FPS: {fps}
-Acquire surface: {acquire_surface}
+        format!(r"Acquire surface: {acquire_surface}
 Discard surface: {discard_surface}
 Render time: {render_time}
-Submit frame time: {submit_time}
-
-{adapter_info}");
-
-        self.text.set_text(&text);
+Submit frame time: {submit_time}")
     }
 
 
+    #[must_use]
     fn adapter_info_to_string(&self) -> String {
 
         let info = &self.info;
@@ -175,9 +233,9 @@ Submit frame time: {submit_time}
         format!(r"Name: {name}
 Vendor: {vendor}
 Device: {device}
-Device type: {:?}
+Device type: {device_type:?}
 Driver: {driver}
 Driver info: {driver_info}
-Backend: {backend}", device_type)
+Backend: {backend}")
     }
 }
