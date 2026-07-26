@@ -15,7 +15,8 @@ struct MainScene {
     pub bottom_cube: Cube,
     pub front_cube:  Cube,
 
-    pub camera_control: rsml::CameraController
+    pub camera_control: rsml::CameraController,
+    pub frame_stats:    rsml::FrameStatDisplay
 }
 
 
@@ -62,6 +63,9 @@ impl MainScene {
 
         let camera_control = rsml::CameraController::new(camera.clone());
 
+        let mut frame_stats = rsml::FrameStatDisplay::new(0, 0);
+        frame_stats.set_front_color(rsml::Color { r: 220, g: 220, b: 220, a: 255 });
+
         Self {
             center_cube,
             left_cube,
@@ -70,7 +74,8 @@ impl MainScene {
             top_cube,
             bottom_cube,
             front_cube,
-            camera_control
+            camera_control,
+            frame_stats
         }
     }
 }
@@ -195,9 +200,9 @@ impl rsml::Window for MainWindow {
     }
 
 
-    fn draw(&mut self, render_target: &mut rsml::RenderTarget, _: &rsml::FrameMonitor) {
+    fn draw(&mut self, render_target: &mut rsml::RenderTarget, frame_monitor: &rsml::FrameMonitor) {
 
-        let Some(scene) = &self.scene else { return; };
+        let Some(scene) = &mut self.scene else { return; };
 
         scene.center_cube.draw(render_target);
         scene.left_cube.draw(render_target);
@@ -206,23 +211,32 @@ impl rsml::Window for MainWindow {
         scene.top_cube.draw(render_target);
         scene.bottom_cube.draw(render_target);
         scene.front_cube.draw(render_target);
+        scene.frame_stats.draw(render_target, frame_monitor);
     }
 
 
     fn event(&mut self, event: winit::event::WindowEvent, _context: rsml::WindowContext) {
 
-        if let winit::event::WindowEvent::KeyboardInput {
-            event: winit::event::KeyEvent {
-                physical_key: winit::keyboard::PhysicalKey::Code(code),
-                state: key_state,
-                ..
-            },
-            ..
-        } = event {
+        use rsml::winit::event::WindowEvent;
+        use rsml::winit::keyboard::KeyCode;
 
-            let Some(scene) = &mut self.scene else { return; };
+        let Some(scene) = &mut self.scene else { return; };
 
-            scene.camera_control.keyboard_input(code, key_state.is_pressed());
+        match event {
+            WindowEvent::Resized(size) => {
+                scene.frame_stats.screen_resized(size.width, size.height);
+            }
+            WindowEvent::KeyboardInput { event, .. } => {
+
+                let winit::keyboard::PhysicalKey::Code(code) = event.physical_key else { return; };
+
+                scene.camera_control.keyboard_input(code, event.state.is_pressed());
+
+                if code == KeyCode::Tab && event.state.is_pressed() {
+                    scene.frame_stats.toggle_display_mode();
+                }
+            }
+            _ => {}
         }
     }
 }
