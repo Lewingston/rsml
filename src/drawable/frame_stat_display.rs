@@ -53,10 +53,11 @@ impl FrameStatDisplay {
             14.0,
             None);
 
-        let mut cam_params = CameraParameters::default(
+        let mut cam_params = CameraParameters{
             width,
-            height
-        );
+            height,
+            ..Default::default()
+        };
         cam_params.projection = ProjectionMode::ORTHOGRAPHIC;
 
         let camera = Camera::new(cam_params);

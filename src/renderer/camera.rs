@@ -91,23 +91,26 @@ impl Camera {
 }
 
 
-impl CameraParameters {
+impl Default for CameraParameters {
 
-    #[must_use]
-    pub fn default(width: f32, height: f32) -> Self {
+    fn default() -> Self {
 
         Self {
             pos:        (0.0, 0.0, 10.0).into(),
             target:     (0.0, 0.0, 0.0).into(),
             up:         cgmath::Vector3::unit_y(),
-            width,
-            height,
+            width:      800.0,
+            height:     600.0,
             fovy:       45.0,
             znear:      0.01,
             zfar:       100.0,
             projection: ProjectionMode::PERSPECTIVE
         }
     }
+}
+
+
+impl CameraParameters {
 
     #[must_use]
     pub fn get_left(&self) -> f32 { self.width / -2.0 }
