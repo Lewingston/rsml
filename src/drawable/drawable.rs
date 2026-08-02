@@ -51,6 +51,20 @@ impl Color {
 
 
     #[must_use]
+    pub fn rgb(r: u8, g: u8, b: u8) -> Self {
+
+        Self { r, g, b, a: 255 }
+    }
+
+
+    #[must_use]
+    pub fn rgba(r: u8, g: u8, b: u8, a: u8) -> Self {
+
+        Self { r, g, b, a }
+    }
+
+
+    #[must_use]
     pub fn to_wgpu_color(&self) -> wgpu::Color {
 
         wgpu::Color {
